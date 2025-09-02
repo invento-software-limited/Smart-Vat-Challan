@@ -1,0 +1,191 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-02 12:17:02.100271",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "invoice_information",
+  "invoice_number",
+  "invoice_date",
+  "customer_id",
+  "retailer_id",
+  "retailer_transaction_ref",
+  "bank_transaction_id",
+  "buyer_info",
+  "transaction_information",
+  "txn_amount",
+  "total_sd_percentage",
+  "total_sd_amount",
+  "total_amount",
+  "payment_method",
+  "total_discount_amount",
+  "terminal_number",
+  "retailer_branch_id",
+  "retailer_branch_info",
+  "total_service_charges_percentage",
+  "total_service_charges_amount",
+  "meta_data",
+  "order_id",
+  "vat_invoice_details",
+  "vat_invoice_detail"
+ ],
+ "fields": [
+  {
+   "fieldname": "invoice_information",
+   "fieldtype": "Section Break",
+   "label": "Invoice Information"
+  },
+  {
+   "fieldname": "invoice_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Invoice Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "invoice_date",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Invoice Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "retailer_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Retailer ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "retailer_transaction_ref",
+   "fieldtype": "Data",
+   "label": "Retailer Transaction Reference"
+  },
+  {
+   "fieldname": "bank_transaction_id",
+   "fieldtype": "Data",
+   "label": "Bank Transaction ID"
+  },
+  {
+   "fieldname": "buyer_info",
+   "fieldtype": "Small Text",
+   "label": "Buyer Info"
+  },
+  {
+   "fieldname": "transaction_information",
+   "fieldtype": "Section Break",
+   "label": "Transaction Information"
+  },
+  {
+   "fieldname": "txn_amount",
+   "fieldtype": "Currency",
+   "label": "Transaction Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "total_sd_percentage",
+   "fieldtype": "Percent",
+   "label": "Total SD Percentage"
+  },
+  {
+   "fieldname": "total_sd_amount",
+   "fieldtype": "Currency",
+   "label": "Total SD Amount"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payment_method",
+   "fieldtype": "Data",
+   "label": "Payment Method"
+  },
+  {
+   "fieldname": "total_discount_amount",
+   "fieldtype": "Currency",
+   "label": "Total Discount Amount"
+  },
+  {
+   "fieldname": "terminal_number",
+   "fieldtype": "Data",
+   "label": "Terminal Number"
+  },
+  {
+   "fieldname": "retailer_branch_id",
+   "fieldtype": "Data",
+   "label": "Retailer Branch ID"
+  },
+  {
+   "fieldname": "retailer_branch_info",
+   "fieldtype": "Small Text",
+   "label": "Retailer Branch Info"
+  },
+  {
+   "fieldname": "total_service_charges_percentage",
+   "fieldtype": "Percent",
+   "label": "Total Service Charges Percentage"
+  },
+  {
+   "fieldname": "total_service_charges_amount",
+   "fieldtype": "Currency",
+   "label": "Total Service Charges Amount"
+  },
+  {
+   "fieldname": "meta_data",
+   "fieldtype": "Section Break",
+   "label": "Meta Data"
+  },
+  {
+   "fieldname": "order_id",
+   "fieldtype": "Data",
+   "label": "Order ID"
+  },
+  {
+   "fieldname": "vat_invoice_details",
+   "fieldtype": "Section Break",
+   "label": "VAT Invoice Details"
+  },
+  {
+   "fieldname": "vat_invoice_detail",
+   "fieldtype": "Small Text",
+   "label": "VAT Invoice Detail"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-02 13:11:28.511555",
+ "modified_by": "Administrator",
+ "module": "Vat Challan",
+ "name": "Vat Invoice",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
