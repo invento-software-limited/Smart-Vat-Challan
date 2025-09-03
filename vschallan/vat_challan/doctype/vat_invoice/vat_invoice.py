@@ -5,7 +5,7 @@ import frappe
 from frappe.model.document import Document
 
 
-class VatInvoice(Document):
+class VATInvoice(Document):
 	def sync_vat_invoice(self):
 		"""Sync VAT Invoice to external system"""
 		try:
