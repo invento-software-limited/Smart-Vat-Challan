@@ -1,0 +1,41 @@
+{
+ "cards": [
+  {
+   "card": "Total Invoice Amount"
+  },
+  {
+   "card": "Total Transaction Amount"
+  },
+  {
+   "card": "Total VAT Amount"
+  },
+  {
+   "card": "Total Registered Branch"
+  },
+  {
+   "card": "Total Retailer"
+  }
+ ],
+ "charts": [
+  {
+   "chart": "VAT Invoice Trends",
+   "width": "Half"
+  },
+  {
+   "chart": "Synced Comparision",
+   "width": "Half"
+  }
+ ],
+ "creation": "2025-09-04 10:12:14.227863",
+ "dashboard_name": "Smart Vat Challan",
+ "docstatus": 0,
+ "doctype": "Dashboard",
+ "idx": 0,
+ "is_default": 1,
+ "is_standard": 1,
+ "modified": "2025-09-04 10:36:36.750227",
+ "modified_by": "Administrator",
+ "module": "Vat Challan",
+ "name": "Smart Vat Challan",
+ "owner": "Administrator"
+}

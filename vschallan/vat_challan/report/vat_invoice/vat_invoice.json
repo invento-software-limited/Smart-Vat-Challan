@@ -13,11 +13,11 @@
  "modified": "2025-09-02 14:33:49.648476",
  "modified_by": "Administrator",
  "module": "Vat Challan",
- "name": "Vat Invoice",
+ "name": "VAT Invoice",
  "owner": "imhossain015@gmail.com",
  "prepared_report": 0,
- "ref_doctype": "Vat Invoice",
- "report_name": "Vat Invoice",
+ "ref_doctype": "VAT Invoice",
+ "report_name": "VAT Invoice",
  "report_type": "Script Report",
  "roles": [
   {

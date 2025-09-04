@@ -1,0 +1,128 @@
+{
+ "charts": [
+  {
+   "chart_name": "VAT Invoice Trends",
+   "label": "VAT Invoice Trends"
+  },
+  {
+   "chart_name": "Synced Comparision",
+   "label": "Synced Comparision"
+  }
+ ],
+ "content": "[{\"id\":\"KaApvYkFr5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Smart Vat Challan</span>\",\"col\":12}},{\"id\":\"q5P9msZpZo\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Invoice Amount\",\"col\":3}},{\"id\":\"bsYZVkGjmX\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Transaction Amount\",\"col\":3}},{\"id\":\"j_qvWHuepc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total VAT Amount\",\"col\":3}},{\"id\":\"y2WnHOVbsg\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"CnadE3eo--\",\"type\":\"chart\",\"data\":{\"chart_name\":\"VAT Invoice Trends\",\"col\":6}},{\"id\":\"yjTUO_w6CB\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Synced Comparision\",\"col\":6}},{\"id\":\"EGznu9R8HF\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Dashboard\",\"col\":3}},{\"id\":\"UC0b-qYWPg\",\"type\":\"card\",\"data\":{\"card_name\":\"Master Data\",\"col\":4}},{\"id\":\"ECtqCa5aGR\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}}]",
+ "creation": "2025-09-04 09:45:43.882183",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "month-view",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Smart Vat Challan",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Master Data",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Vendor Configuration",
+   "link_count": 0,
+   "link_to": "POS Vendor Configuration",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retailer Registration",
+   "link_count": 0,
+   "link_to": "Retailer Registration",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retailer Branch Registration",
+   "link_count": 0,
+   "link_to": "Retailer Branch Registration",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "VAT Invoice",
+   "link_count": 0,
+   "link_to": "VAT Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 1,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Vat Invoice",
+   "link_count": 0,
+   "link_to": "VAT Invoice",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2025-09-04 10:40:30.811698",
+ "modified_by": "Administrator",
+ "module": "Vat Challan",
+ "name": "Smart Vat Challan",
+ "number_cards": [
+  {
+   "label": "Total VAT Amount",
+   "number_card_name": "Total VAT Amount"
+  },
+  {
+   "label": "Total Invoice Amount",
+   "number_card_name": "Total Invoice Amount"
+  },
+  {
+   "label": "Total Transaction Amount",
+   "number_card_name": "Total Transaction Amount"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 28.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Dashboard",
+   "link_to": "Smart Vat Challan",
+   "type": "Dashboard"
+  }
+ ],
+ "title": "Smart Vat Challan"
+}

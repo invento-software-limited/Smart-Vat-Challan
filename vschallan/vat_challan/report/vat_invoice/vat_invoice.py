@@ -14,10 +14,22 @@ def execute(filters=None):
 def get_columns():
 	columns = [
 		{
+			"fieldname": "sync_now",
+			"label": _("Sync Now"),
+			"fieldtype": "Button",
+			"width": 100
+		},
+		{
+			"fieldname": "download_schallan",
+			"label": _("Download Schallan"),
+			"fieldtype": "Button",
+			"width": 160
+		},
+		{
 			"fieldname": "name",
 			"label": _("VAT Invoice Number"),
 			"fieldtype": "Link",
-			"options": "Vat Invoice",
+			"options": "VAT Invoice",
 			"width": 150
 		},
 		{
@@ -33,6 +45,60 @@ def get_columns():
 			"width": 130
 		},
 		{
+			"fieldname": "customer_id",
+			"label": _("Customer ID"),
+			"fieldtype": "Data",
+			"width": 120
+		},
+		{
+			"fieldname": "retailer_id",
+			"label": _("Retailer ID"),
+			"fieldtype": "Data",
+			"width": 120
+		},
+		{
+			"fieldname": "txn_amount",
+			"label": _("Transaction Amount"),
+			"fieldtype": "Currency",
+			"width": 130
+		},
+		{
+			"fieldname": "total_sd_percentage",
+			"label": _("SD %"),
+			"fieldtype": "Percent",
+			"width": 90
+		},
+		{
+			"fieldname": "total_sd_amount",
+			"label": _("SD Amount"),
+			"fieldtype": "Currency",
+			"width": 120
+		},
+		{
+			"fieldname": "total_discount_amount",
+			"label": _("Discount Amount"),
+			"fieldtype": "Currency",
+			"width": 120
+		},
+		{
+			"fieldname": "total_service_charges_amount",
+			"label": _("Service Charges"),
+			"fieldtype": "Currency",
+			"width": 130
+		},
+		{
+			"fieldname": "total_amount",
+			"label": _("Total Amount"),
+			"fieldtype": "Currency",
+			"width": 130
+		},
+		{
+			"fieldname": "payment_method",
+			"label": _("Payment Method"),
+			"fieldtype": "Data",
+			"width": 120
+		},
+		{
 			"fieldname": "order_id",
 			"label": _("Order ID"),
 			"fieldtype": "Data",
@@ -43,25 +109,12 @@ def get_columns():
 			"label": _("Status"),
 			"fieldtype": "Data",
 			"width": 100
-		},
-		{
-			"fieldname": "sync_now",
-			"label": _("Sync Now"),
-			"fieldtype": "Button",
-			"width": 100
-		},
-		{
-			"fieldname": "download_schallan",
-			"label": _("Download Schallan"),
-			"fieldtype": "Button",
-			"width": 160
 		}
 	]
 	return columns
 
 
 def get_data(filters):
-	# Build filter conditions
 	filter_conditions = {}
 
 	if filters.get("invoice_number"):
@@ -81,15 +134,29 @@ def get_data(filters):
 		filter_conditions["invoice_date"] = ["<=", filters.to_date]
 
 	data = frappe.get_all(
-		"Vat Invoice",
-		fields=["name", "invoice_number", "invoice_date", "order_id", "status"],
+		"VAT Invoice",
+		fields=[
+			"name",
+			"invoice_number",
+			"invoice_date",
+			"customer_id",
+			"retailer_id",
+			"txn_amount",
+			"total_sd_percentage",
+			"total_sd_amount",
+			"total_discount_amount",
+			"total_service_charges_amount",
+			"total_amount",
+			"payment_method",
+			"order_id",
+			"status"
+		],
 		filters=filter_conditions,
 		order_by="creation desc"
 	)
 
-	# Add sync_now button for each row
 	for row in data:
 		row["sync_now"] = f"<button class='btn btn-xs btn-primary' onclick='syncVatInvoice(\"{row.name}\")'>Sync Now</button>"
-		row["download_schallan"] = f"<button class='btn btn-xs btn-primary' onclick='syncVatInvoice(\"{row.name}\")'>Download Schallan</button>"
+		row["download_schallan"] = f"<button class='btn btn-xs btn-primary' onclick='downloadVatChallan(\"{row.name}\")'>Download Schallan</button>"
 
 	return data

@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Invento Software Limited and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Vat Invoice"] = {
+frappe.query_reports["VAT Invoice"] = {
 	"filters": [
 		{
 			"fieldname": "invoice_number",
@@ -35,16 +35,21 @@ frappe.query_reports["Vat Invoice"] = {
 			"width": 100
 		}
 	],
+	get_datatable_options(options) {
+		delete options['cellHeight'];
+		return Object.assign(options, {
+			cellHeight: 40
+		});
 
-	"onload": function(report) {
-		// Add sync function to global scope
-		window.syncVatInvoice = function(vat_invoice_name) {
+	},
+	"onload": function (report) {
+		window.syncVatInvoice = function (vat_invoice_name) {
 			frappe.call({
 				method: "vschallan.vat_challan.doctype.vat_invoice.vat_invoice.sync_vat_invoice",
 				args: {
 					vat_invoice_name: vat_invoice_name
 				},
-				callback: function(r) {
+				callback: function (r) {
 					if (r.exc) {
 						frappe.msgprint({
 							title: __("Error"),

@@ -191,9 +191,11 @@
    "label": "Server Response"
   },
   {
+   "default": "Pending",
    "fieldname": "status",
-   "fieldtype": "Data",
-   "label": "Status"
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nSynced\nFailed"
   },
   {
    "fieldname": "requested_payloads",
@@ -209,7 +211,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-02 14:52:29.356101",
+ "modified": "2025-09-04 10:28:37.750304",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "VAT Invoice",
