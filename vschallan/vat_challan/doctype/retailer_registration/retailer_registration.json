@@ -174,51 +174,67 @@
   },
   {
    "fieldname": "zone",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Zone",
+   "options": "VC Zone",
    "reqd": 1
   },
   {
+   "fetch_from": "zone.zone_id",
+   "fetch_if_empty": 1,
    "fieldname": "zone_id",
    "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Zone ID"
-  },
-  {
-   "fieldname": "vat_commission_rate",
-   "fieldtype": "Select",
-   "label": "Vat Commission Rate",
+   "label": "Zone ID",
+   "read_only": 1,
    "reqd": 1
   },
   {
+   "depends_on": "eval:doc.zone",
+   "fieldname": "vat_commission_rate",
+   "fieldtype": "Link",
+   "label": "Vat Commission Rate",
+   "options": "VC VAT Commission Rate",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "vat_commission_rate.vat_commission_rate_id",
    "fieldname": "vat_commissionrate_id",
    "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Vat Commission Rate ID"
-  },
-  {
-   "fieldname": "division",
-   "fieldtype": "Select",
-   "label": "Division",
+   "label": "Vat Commission Rate ID",
+   "read_only": 1,
    "reqd": 1
   },
   {
+   "depends_on": "eval:doc.vat_commission_rate",
+   "fieldname": "division",
+   "fieldtype": "Link",
+   "label": "Division",
+   "options": "VC Division",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "division.division_id",
    "fieldname": "division_id",
    "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Division ID"
-  },
-  {
-   "fieldname": "circle",
-   "fieldtype": "Select",
-   "label": "Circle",
+   "label": "Division ID",
+   "read_only": 1,
    "reqd": 1
   },
   {
+   "depends_on": "eval:doc.division",
+   "fieldname": "circle",
+   "fieldtype": "Link",
+   "label": "Circle",
+   "options": "VC Circle",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "circle.circle_id",
    "fieldname": "circle_id",
    "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Circle ID"
+   "label": "Circle ID",
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "fieldname": "company",
@@ -320,7 +336,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-03 11:17:05.009091",
+ "modified": "2025-09-04 14:22:27.819167",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Retailer Registration",
