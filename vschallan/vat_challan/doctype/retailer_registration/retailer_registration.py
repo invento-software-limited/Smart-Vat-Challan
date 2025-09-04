@@ -7,7 +7,10 @@ from vschallan.vschallan import VATSmartChallan
 
 
 class RetailerRegistration(Document):
-	pass
+	def before_submit(self):
+		vschallan = VATSmartChallan()
+		vschallan.register_retailer(self)
+
 
 @frappe.whitelist()
 def get_service_types(force_refresh=False):

@@ -39,7 +39,7 @@
   "server_response_section",
   "status_code",
   "column_break_idiv",
-  "retailler_id",
+  "retailer_id",
   "section_break_dqgr",
   "server_response",
   "files_tab",
@@ -318,25 +318,25 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "retailler_id",
-   "fieldtype": "Data",
-   "label": "Retailler ID"
-  },
-  {
    "fieldname": "section_break_dqgr",
    "fieldtype": "Section Break"
   },
   {
    "fieldname": "server_response",
-   "fieldtype": "JSON",
+   "fieldtype": "Long Text",
    "label": "Server Response"
+  },
+  {
+   "fieldname": "retailer_id",
+   "fieldtype": "Data",
+   "label": "Retailer ID"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-04 14:22:27.819167",
+ "modified": "2025-09-04 14:59:47.427195",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Retailer Registration",

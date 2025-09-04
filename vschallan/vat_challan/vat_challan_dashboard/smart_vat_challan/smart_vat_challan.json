@@ -1,19 +1,22 @@
 {
  "cards": [
   {
-   "card": "Total Invoice Amount"
+   "card": "Invoice Grand Total This Month"
   },
   {
-   "card": "Total Transaction Amount"
+   "card": "Invoice Net Total This Month"
   },
   {
-   "card": "Total VAT Amount"
+   "card": "VAT Total This Month"
   },
   {
-   "card": "Total Registered Branch"
+   "card": "Failed Sync"
   },
   {
    "card": "Total Retailer"
+  },
+  {
+   "card": "Total Registered Branch"
   }
  ],
  "charts": [
@@ -30,10 +33,10 @@
  "dashboard_name": "Smart Vat Challan",
  "docstatus": 0,
  "doctype": "Dashboard",
- "idx": 0,
+ "idx": 1,
  "is_default": 1,
  "is_standard": 1,
- "modified": "2025-09-04 10:36:36.750227",
+ "modified": "2025-09-04 16:27:53.182782",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Smart Vat Challan",

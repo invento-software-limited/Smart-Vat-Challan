@@ -1,5 +1,4 @@
 import os
-import json
 import frappe
 import requests
 from frappe.utils.password import get_decrypted_password
@@ -9,7 +8,26 @@ from datetime import datetime
 
 
 class VATSmartChallan:
+	"""
+	Service client for integrating with the VAT Smart Challan API.
+
+	This class:
+	- Reads API configuration from the "POS Vendor Configuration" doctype.
+	- Manages access tokens (retrieve, cache, and refresh on expiry/401).
+	- Calls API endpoints to fetch master data (zones, divisions, circles, VAT commission rates,
+	  and retailer service types).
+	- Persists responses into respective Frappe doctypes while preventing duplicates.
+	"""
+
 	def __init__(self):
+		"""
+		Initialize the client using configuration stored in POS Vendor Configuration.
+
+		Loads and validates configuration, decrypts secrets, sets up token and cache directory.
+
+		Raises:
+			frappe.ValidationError: If configuration is missing or disabled.
+		"""
 		config_data = frappe.db.get_value(
 			"POS Vendor Configuration",
 			{},
@@ -38,6 +56,22 @@ class VATSmartChallan:
 			os.makedirs(self.cache_dir)
 
 	def get_access_token(self, force_refresh=False):
+		"""
+		Get a valid access token, refreshing if needed.
+
+		Args:
+			force_refresh (bool): If True, forces a fresh token request regardless of current state.
+
+		Returns:
+			dict: {
+				"access_token": str,
+				"expiry_date": str | None (format: "%Y-%m-%d %H:%M:%S"),
+				"company_id": str | None
+			}
+
+		Raises:
+			frappe.ValidationError: If token retrieval fails or response parsing fails.
+		"""
 		if self.access_token and not force_refresh and self.expiry_date:
 			try:
 				expiry_datetime = datetime.strptime(self.expiry_date, "%Y-%m-%d %H:%M:%S")
@@ -102,6 +136,12 @@ class VATSmartChallan:
 			frappe.throw(f"Failed to authenticate vendor: {str(e)}")
 
 	def get_header(self):
+		"""
+		Build request headers for authenticated API calls.
+
+		Returns:
+			dict: Headers including Authorization, companyID and Content-Type.
+		"""
 		return {
 			"Authorization": f"Token {self.access_token}",
 			"companyID": self.company_id,
@@ -110,8 +150,15 @@ class VATSmartChallan:
 
 	def get_zone(self):
 		"""
-		Fetch zones from API and save them in VC Zone doctype.
-		Avoid duplicates based on zone ID.
+		Fetch and upsert zones from the API.
+
+		Behavior:
+			- Calls /integration/zone.
+			- Refreshes token and retries on 401.
+			- Parses XML and inserts missing records into "VC Zone" by unique zone_id.
+
+		Raises:
+			frappe.ValidationError: On HTTP failure or XML parsing issues.
 		"""
 
 		def fetch_zones():
@@ -158,8 +205,16 @@ class VATSmartChallan:
 
 	def get_vat_commission_rate(self):
 		"""
-		Fetch VAT commission rates from API and save them in VC VAT Commission Rate doctype.
-		Avoid duplicates based on rate ID.
+		Fetch and upsert VAT commission rates from the API.
+
+		Behavior:
+			- Calls /integration/vat_commissionrate.
+			- Refreshes token and retries on 401.
+			- Parses XML and inserts missing "VC VAT Commission Rate" records by vat_commission_rate_id.
+			- Links each rate to its "VC Zone" using zone_id.
+
+		Raises:
+			frappe.ValidationError: On HTTP failure or XML parsing issues.
 		"""
 		url = f"{self.base_url}/integration/vat_commissionrate"
 		headers = self.get_header()
@@ -376,3 +431,93 @@ class VATSmartChallan:
 
 		except requests.exceptions.RequestException as e:
 			frappe.throw(f"Failed to fetch Retailer Service Types: {str(e)}")
+
+	def register_retailer(self, doc):
+		"""
+		Register a retailer via external API using RetailerRegistration doc fields
+		"""
+		url = f"{self.base_url}/integration/retail_registration"
+
+		type_of_business_list = []
+		if hasattr(doc, "service_types") and doc.service_types:
+			for row in doc.service_types:
+				if row.type_id:
+					type_of_business_list.append(row.type_id)
+
+		payload = {
+			"owner_full_name": doc.owner_full_name,
+			"owner_cc": doc.owner_cc,
+			"owner_mobile": doc.owner_mobile,
+			"owner_email": doc.owner_email,
+			"owner_nid": doc.owner_nid,
+			"business_name": doc.business_name,
+			"business_address": doc.business_address,
+			"business_logo": doc.business_logo,
+			"business_website": doc.business_website,
+			"business_ecom": doc.business_ecom,
+			"business_app": doc.business_app,
+			"bin": doc.bin,
+			"trade_license_number": doc.trade_license_number,
+			"tin": doc.tin,
+			"type_of_business_list": type_of_business_list,
+			"zone_id": doc.zone_id,
+			"vat_commissionrate_id": doc.vat_commissionrate_id,
+			"division_id": doc.division_id,
+			"circle_id": doc.circle_id
+		}
+
+		try:
+			response = requests.post(url, headers=self.get_header(), json=payload, timeout=30)
+			if response.status_code == 401:
+				self.get_access_token(force_refresh=True)
+				response = requests.post(url, headers=self.get_header(), json=payload, timeout=30)
+			response.raise_for_status()
+			raw_content = response.text
+
+			root = ET.fromstring(raw_content)
+
+			status_code = root.findtext("status_code")
+			success = root.findtext("success")
+			error_msg = root.findtext("error")
+			data_elem = root.find("data")
+
+			if status_code == "200" and data_elem is not None:
+				message = data_elem.findtext("message")
+
+
+				retailer_id = data_elem.findtext("retailer_id")
+				retailer_number = data_elem.findtext("retailer_number")
+
+				if retailer_id and retailer_number:
+					doc.db_set("status_code", status_code)
+					doc.db_set("retailer_id", retailer_id)
+					frappe.msgprint(f"Retailer registered successfully: {retailer_number}")
+
+				else:
+					retailer_details = data_elem.find("retailer_details")
+					if retailer_details is not None:
+						existing_id = retailer_details.findtext("retailer_id")
+						existing_number = retailer_details.findtext("retailer_number")
+						doc.db_set("status_code", status_code)
+						doc.db_set("retailer_id", existing_id)
+
+						frappe.msgprint(
+							f"Retailer already exists ({message}): {existing_number}"
+						)
+					else:
+						frappe.throw(f"Retailer registration failed: {message or 'Unknown error'}")
+
+			elif success == "0":
+				frappe.throw(f"Retailer registration failed: {error_msg or 'Unknown error'}")
+
+			else:
+				frappe.throw("Unexpected response format from API")
+
+		except ET.ParseError:
+			frappe.throw(f"Failed to parse XML response: {raw_content}")
+		except requests.exceptions.HTTPError as e:
+			frappe.throw(f"HTTP Error: {str(e)}")
+		except requests.exceptions.RequestException as e:
+			frappe.throw(f"Request Error: {str(e)}")
+
+

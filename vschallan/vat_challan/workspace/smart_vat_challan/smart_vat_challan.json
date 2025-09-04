@@ -9,7 +9,7 @@
    "label": "Synced Comparision"
   }
  ],
- "content": "[{\"id\":\"KaApvYkFr5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Smart Vat Challan</span>\",\"col\":12}},{\"id\":\"q5P9msZpZo\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Invoice Amount\",\"col\":3}},{\"id\":\"bsYZVkGjmX\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Transaction Amount\",\"col\":3}},{\"id\":\"j_qvWHuepc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total VAT Amount\",\"col\":3}},{\"id\":\"y2WnHOVbsg\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"CnadE3eo--\",\"type\":\"chart\",\"data\":{\"chart_name\":\"VAT Invoice Trends\",\"col\":6}},{\"id\":\"yjTUO_w6CB\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Synced Comparision\",\"col\":6}},{\"id\":\"EGznu9R8HF\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Dashboard\",\"col\":3}},{\"id\":\"UC0b-qYWPg\",\"type\":\"card\",\"data\":{\"card_name\":\"Master Data\",\"col\":4}},{\"id\":\"ECtqCa5aGR\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}}]",
+ "content": "[{\"id\":\"KaApvYkFr5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Smart Vat Challan</span>\",\"col\":12}},{\"id\":\"q5P9msZpZo\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Invoice Grand Total This Month\",\"col\":4}},{\"id\":\"bsYZVkGjmX\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Invoice Net Total This Month\",\"col\":4}},{\"id\":\"j_qvWHuepc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"VAT Total This Month\",\"col\":4}},{\"id\":\"y2WnHOVbsg\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"CnadE3eo--\",\"type\":\"chart\",\"data\":{\"chart_name\":\"VAT Invoice Trends\",\"col\":6}},{\"id\":\"yjTUO_w6CB\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Synced Comparision\",\"col\":6}},{\"id\":\"EGznu9R8HF\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Dashboard\",\"col\":3}},{\"id\":\"UC0b-qYWPg\",\"type\":\"card\",\"data\":{\"card_name\":\"Master Data\",\"col\":4}},{\"id\":\"ECtqCa5aGR\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}}]",
  "creation": "2025-09-04 09:45:43.882183",
  "custom_blocks": [],
  "docstatus": 0,
@@ -25,8 +25,27 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 1,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Vat Invoice",
+   "link_count": 0,
+   "link_to": "VAT Invoice",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Master Data",
-   "link_count": 4,
+   "link_count": 9,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -74,39 +93,70 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Reports",
-   "link_count": 1,
+   "label": "VC Zone",
+   "link_count": 0,
+   "link_to": "VC Zone",
    "link_type": "DocType",
    "onboard": 0,
-   "type": "Card Break"
+   "type": "Link"
   },
   {
    "hidden": 0,
-   "is_query_report": 1,
-   "label": "Vat Invoice",
+   "is_query_report": 0,
+   "label": "VC VAT Commission Rate",
    "link_count": 0,
-   "link_to": "VAT Invoice",
-   "link_type": "Report",
+   "link_to": "VC VAT Commission Rate",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "VC Division",
+   "link_count": 0,
+   "link_to": "VC Division",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "VC Circle",
+   "link_count": 0,
+   "link_to": "VC Circle",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "VC Service Type",
+   "link_count": 0,
+   "link_to": "VC Service Type",
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
   }
  ],
- "modified": "2025-09-04 10:40:30.811698",
+ "modified": "2025-09-04 16:57:35.259250",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Smart Vat Challan",
  "number_cards": [
   {
-   "label": "Total VAT Amount",
-   "number_card_name": "Total VAT Amount"
+   "label": "Invoice Grand Total This Month",
+   "number_card_name": "Invoice Grand Total This Month"
   },
   {
-   "label": "Total Invoice Amount",
-   "number_card_name": "Total Invoice Amount"
+   "label": "Invoice Net Total This Month",
+   "number_card_name": "Invoice Net Total This Month"
   },
   {
-   "label": "Total Transaction Amount",
-   "number_card_name": "Total Transaction Amount"
+   "label": "VAT Total This Month",
+   "number_card_name": "VAT Total This Month"
   }
  ],
  "owner": "Administrator",
