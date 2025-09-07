@@ -4,14 +4,22 @@
 frappe.query_reports["VAT Invoice"] = {
 	"filters": [
 		{
-			"fieldname": "invoice_number",
-			"label": __("Invoice Number"),
-			"fieldtype": "Data",
-			"width": 120
+			"fieldname": "from_date",
+			"label": __("From Date"),
+			"fieldtype": "Date",
+			"width": 100,
+            "default": frappe.datetime.get_today()
 		},
 		{
-			"fieldname": "order_id",
-			"label": __("Order ID"),
+			"fieldname": "to_date",
+			"label": __("To Date"),
+			"fieldtype": "Date",
+			"width": 100,
+            "default": frappe.datetime.get_today()
+		},
+		{
+			"fieldname": "invoice_number",
+			"label": __("Invoice Number"),
 			"fieldtype": "Data",
 			"width": 120
 		},
@@ -22,18 +30,6 @@ frappe.query_reports["VAT Invoice"] = {
 			"options": "\nPending\nSynced\nFailed",
 			"width": 100
 		},
-		{
-			"fieldname": "from_date",
-			"label": __("From Date"),
-			"fieldtype": "Date",
-			"width": 100
-		},
-		{
-			"fieldname": "to_date",
-			"label": __("To Date"),
-			"fieldtype": "Date",
-			"width": 100
-		}
 	],
 	get_datatable_options(options) {
 		delete options['cellHeight'];

@@ -9,111 +9,8 @@ def execute(filters=None):
 	columns = get_columns()
 	data = get_data(filters)
 	summary = get_report_summary(filters)
-	chart = get_sales_trends_chart(filters)
+	chart = get_branch_wise_chart(filters)
 	return columns, data, None, chart, summary
-
-
-def get_columns():
-	columns = [
-		{
-			"fieldname": "sync_now",
-			"label": _("Sync Now"),
-			"fieldtype": "Button",
-			"width": 100
-		},
-		{
-			"fieldname": "download_schallan",
-			"label": _("Download Schallan"),
-			"fieldtype": "Button",
-			"width": 160
-		},
-		{
-			"fieldname": "name",
-			"label": _("VAT Invoice Number"),
-			"fieldtype": "Link",
-			"options": "VAT Invoice",
-			"width": 150
-		},
-		{
-			"fieldname": "invoice_number",
-			"label": _("Invoice Number"),
-			"fieldtype": "Data",
-			"width": 120
-		},
-		{
-			"fieldname": "invoice_date",
-			"label": _("Invoice Date"),
-			"fieldtype": "Datetime",
-			"width": 130
-		},
-		{
-			"fieldname": "customer_id",
-			"label": _("Customer ID"),
-			"fieldtype": "Data",
-			"width": 120
-		},
-		{
-			"fieldname": "retailer_id",
-			"label": _("Retailer ID"),
-			"fieldtype": "Data",
-			"width": 120
-		},
-		{
-			"fieldname": "txn_amount",
-			"label": _("Transaction Amount"),
-			"fieldtype": "Currency",
-			"width": 130
-		},
-		{
-			"fieldname": "total_sd_percentage",
-			"label": _("SD %"),
-			"fieldtype": "Percent",
-			"width": 90
-		},
-		{
-			"fieldname": "total_sd_amount",
-			"label": _("SD Amount"),
-			"fieldtype": "Currency",
-			"width": 120
-		},
-		{
-			"fieldname": "total_discount_amount",
-			"label": _("Discount Amount"),
-			"fieldtype": "Currency",
-			"width": 120
-		},
-		{
-			"fieldname": "total_service_charges_amount",
-			"label": _("Service Charges"),
-			"fieldtype": "Currency",
-			"width": 130
-		},
-		{
-			"fieldname": "total_amount",
-			"label": _("Total Amount"),
-			"fieldtype": "Currency",
-			"width": 130
-		},
-		{
-			"fieldname": "payment_method",
-			"label": _("Payment Method"),
-			"fieldtype": "Data",
-			"width": 120
-		},
-		{
-			"fieldname": "order_id",
-			"label": _("Order ID"),
-			"fieldtype": "Data",
-			"width": 120
-		},
-		{
-			"fieldname": "status",
-			"label": _("Status"),
-			"fieldtype": "Data",
-			"width": 100
-		}
-	]
-	return columns
 
 
 def get_report_summary(filters):
@@ -121,12 +18,9 @@ def get_report_summary(filters):
 
 	# remove non-doctype fields
 	valid_filters = {}
-	if filters.get("invoice_number"):
-		valid_filters["invoice_number"] = ["like", f"%{filters.invoice_number}%"]
 
-	if filters.get("order_id"):
-		valid_filters["order_id"] = ["like", f"%{filters.order_id}%"]
-
+	if filters.get("branch"):
+		valid_filters["branch"] = filters.branch
 	if filters.get("status"):
 		valid_filters["status"] = filters.status
 
@@ -187,6 +81,41 @@ def get_report_summary(filters):
 	]
 
 
+def get_branch_wise_chart(filters):
+	filters = frappe._dict(filters or {})
+	conditions = ["1=1"]
+
+	if filters.get("from_date"):
+		conditions.append(f"invoice_date >= '{filters.from_date}'")
+	if filters.get("to_date"):
+		conditions.append(f"invoice_date <= '{filters.to_date}'")
+	if filters.get("status"):
+		conditions.append(f"status = '{filters.status}'")
+
+	where_clause = " AND ".join(conditions)
+
+	# Get transaction amount per branch
+	sales_data = frappe.db.sql(f"""
+        SELECT branch, SUM(txn_amount) as total_txn
+        FROM `tabVAT Invoice`
+        WHERE {where_clause}
+        GROUP BY branch
+        ORDER BY total_txn DESC
+    """, as_list=True)
+
+	labels = [row[0] or "Unknown" for row in sales_data]
+	values = [row[1] or 0 for row in sales_data]
+
+	return {
+		"data": {
+			"labels": labels,
+			"datasets": [{"name": "Transaction Amount", "values": values}]
+		},
+		"type": "bar",
+		"height": 300
+	}
+
+
 def get_sales_trends_chart(filters):
 	filters = frappe._dict(filters or {})
 
@@ -231,18 +160,49 @@ def get_sales_trends_chart(filters):
 	}
 
 
+def get_columns():
+	return [
+		{"fieldname": "name", "label": _("VAT Invoice Number"), "fieldtype": "Link",
+		 "options": "VAT Invoice", "width": 150},
+		{"fieldname": "invoice_number", "label": _("Invoice Number"), "fieldtype": "Data",
+		 "width": 120},
+		{"fieldname": "invoice_date", "label": _("Invoice Date"), "fieldtype": "Datetime",
+		 "width": 130},
+		{"fieldname": "branch", "label": _("Branch"), "fieldtype": "Link",
+		 "options": "Retailer Branch Registration", "width": 120},  # 👈 Added Branch
+		{"fieldname": "customer_id", "label": _("Customer ID"), "fieldtype": "Data", "width": 120},
+		{"fieldname": "retailer_id", "label": _("Retailer ID"), "fieldtype": "Data", "width": 120},
+		{"fieldname": "txn_amount", "label": _("Transaction Amount"), "fieldtype": "Currency",
+		 "width": 130},
+		{"fieldname": "total_sd_percentage", "label": _("SD %"), "fieldtype": "Percent",
+		 "width": 90},
+		{"fieldname": "total_sd_amount", "label": _("SD Amount"), "fieldtype": "Currency",
+		 "width": 120},
+		{"fieldname": "total_discount_amount", "label": _("Discount Amount"),
+		 "fieldtype": "Currency", "width": 120},
+		{"fieldname": "total_service_charges_amount", "label": _("Service Charges"),
+		 "fieldtype": "Currency", "width": 130},
+		{"fieldname": "total_amount", "label": _("Total Amount"), "fieldtype": "Currency",
+		 "width": 130},
+		{"fieldname": "payment_method", "label": _("Payment Method"), "fieldtype": "Data",
+		 "width": 120},
+		{"fieldname": "order_id", "label": _("Order ID"), "fieldtype": "Data", "width": 120},
+		{"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 100},
+	]
+
+
 def get_data(filters):
+	filters = frappe._dict(filters or {})
 	filter_conditions = {}
 
 	if filters.get("invoice_number"):
 		filter_conditions["invoice_number"] = ["like", f"%{filters.invoice_number}%"]
-
 	if filters.get("order_id"):
 		filter_conditions["order_id"] = ["like", f"%{filters.order_id}%"]
-
 	if filters.get("status"):
 		filter_conditions["status"] = filters.status
-
+	if filters.get("branch"):
+		filter_conditions["branch"] = filters.branch
 	if filters.get("from_date") and filters.get("to_date"):
 		filter_conditions["invoice_date"] = ["between", [filters.from_date, filters.to_date]]
 	elif filters.get("from_date"):
@@ -256,6 +216,7 @@ def get_data(filters):
 			"name",
 			"invoice_number",
 			"invoice_date",
+			"branch",  # 👈 Added Branch
 			"customer_id",
 			"retailer_id",
 			"txn_amount",
@@ -271,11 +232,4 @@ def get_data(filters):
 		filters=filter_conditions,
 		order_by="creation desc"
 	)
-
-	for row in data:
-		row[
-			"sync_now"] = f"<button class='btn btn-xs btn-primary' onclick='syncVatInvoice(\"{row.name}\")'>Sync Now</button>"
-		row[
-			"download_schallan"] = f"<button class='btn btn-xs btn-primary' onclick='downloadVatChallan(\"{row.name}\")'>Download Schallan</button>"
-
 	return data

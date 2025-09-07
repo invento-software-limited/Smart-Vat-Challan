@@ -1,22 +1,25 @@
 {
  "cards": [
   {
-   "card": "Invoice Grand Total This Month"
+   "card": "Monthly Sales"
   },
   {
-   "card": "Invoice Net Total This Month"
+   "card": "Monthly Sales Without VAT"
   },
   {
-   "card": "VAT Total This Month"
+   "card": "Monthly VAT"
   },
   {
-   "card": "Failed Sync"
+   "card": "Monthly Invoice"
   },
   {
    "card": "Total Retailer"
   },
   {
    "card": "Total Registered Branch"
+  },
+  {
+   "card": "Failed Sync"
   }
  ],
  "charts": [
@@ -27,6 +30,10 @@
   {
    "chart": "Synced Comparision",
    "width": "Half"
+  },
+  {
+   "chart": "Branch Wise Monthly Sales",
+   "width": "Half"
   }
  ],
  "creation": "2025-09-04 10:12:14.227863",
@@ -36,7 +43,7 @@
  "idx": 1,
  "is_default": 1,
  "is_standard": 1,
- "modified": "2025-09-04 16:27:53.182782",
+ "modified": "2025-09-07 16:45:53.088285",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Smart Vat Challan",

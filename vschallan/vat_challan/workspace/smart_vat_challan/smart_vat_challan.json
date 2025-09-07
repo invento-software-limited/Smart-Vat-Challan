@@ -9,7 +9,7 @@
    "label": "Synced Comparision"
   }
  ],
- "content": "[{\"id\":\"KaApvYkFr5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Smart Vat Challan</span>\",\"col\":12}},{\"id\":\"q5P9msZpZo\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Invoice Grand Total This Month\",\"col\":4}},{\"id\":\"bsYZVkGjmX\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Invoice Net Total This Month\",\"col\":4}},{\"id\":\"j_qvWHuepc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"VAT Total This Month\",\"col\":4}},{\"id\":\"y2WnHOVbsg\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"CnadE3eo--\",\"type\":\"chart\",\"data\":{\"chart_name\":\"VAT Invoice Trends\",\"col\":6}},{\"id\":\"yjTUO_w6CB\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Synced Comparision\",\"col\":6}},{\"id\":\"EGznu9R8HF\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Dashboard\",\"col\":3}},{\"id\":\"UC0b-qYWPg\",\"type\":\"card\",\"data\":{\"card_name\":\"Master Data\",\"col\":4}},{\"id\":\"ECtqCa5aGR\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}}]",
+ "content": "[{\"id\":\"KaApvYkFr5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Smart Vat Challan</span>\",\"col\":12}},{\"id\":\"q5P9msZpZo\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Monthly Sales\",\"col\":4}},{\"id\":\"bsYZVkGjmX\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Monthly Sales Without VAT\",\"col\":4}},{\"id\":\"j_qvWHuepc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Monthly VAT\",\"col\":4}},{\"id\":\"y2WnHOVbsg\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"CnadE3eo--\",\"type\":\"chart\",\"data\":{\"chart_name\":\"VAT Invoice Trends\",\"col\":6}},{\"id\":\"yjTUO_w6CB\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Synced Comparision\",\"col\":6}},{\"id\":\"2OAr_sw8nE\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"EGznu9R8HF\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Dashboard\",\"col\":3}},{\"id\":\"E8fAPlEF5C\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vat Invoice\",\"col\":3}},{\"id\":\"6ep157OPtJ\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"UC0b-qYWPg\",\"type\":\"card\",\"data\":{\"card_name\":\"Configurations\",\"col\":5}},{\"id\":\"ECtqCa5aGR\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":5}}]",
  "creation": "2025-09-04 09:45:43.882183",
  "custom_blocks": [],
  "docstatus": 0,
@@ -25,27 +25,8 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Reports",
-   "link_count": 1,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Vat Invoice",
-   "link_count": 0,
-   "link_to": "VAT Invoice",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Master Data",
-   "link_count": 9,
+   "label": "Configurations",
+   "link_count": 8,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -76,16 +57,6 @@
    "label": "Retailer Branch Registration",
    "link_count": 0,
    "link_to": "Retailer Branch Registration",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "VAT Invoice",
-   "link_count": 0,
-   "link_to": "VAT Invoice",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -139,24 +110,63 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Report Trends",
+   "link_count": 0,
+   "link_to": "VAT Invoice",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Branch-wise Sales",
+   "link_count": 0,
+   "link_to": "Branch-wise Sales",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Service Type wise Sales",
+   "link_count": 0,
+   "link_to": "Service Type wise Sales",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2025-09-04 16:57:35.259250",
+ "modified": "2025-09-07 16:52:22.719458",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Smart Vat Challan",
  "number_cards": [
   {
-   "label": "Invoice Grand Total This Month",
-   "number_card_name": "Invoice Grand Total This Month"
+   "label": "Monthly Sales",
+   "number_card_name": "Monthly Sales"
   },
   {
-   "label": "Invoice Net Total This Month",
-   "number_card_name": "Invoice Net Total This Month"
+   "label": "Monthly VAT",
+   "number_card_name": "Monthly VAT"
   },
   {
-   "label": "VAT Total This Month",
-   "number_card_name": "VAT Total This Month"
+   "label": "Monthly Sales Without VAT",
+   "number_card_name": "Monthly Sales Without VAT"
   }
  ],
  "owner": "Administrator",
@@ -172,6 +182,15 @@
    "label": "Dashboard",
    "link_to": "Smart Vat Challan",
    "type": "Dashboard"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "format": "{} Created",
+   "label": "Vat Invoice",
+   "link_to": "VAT Invoice",
+   "stats_filter": "[]",
+   "type": "DocType"
   }
  ],
  "title": "Smart Vat Challan"

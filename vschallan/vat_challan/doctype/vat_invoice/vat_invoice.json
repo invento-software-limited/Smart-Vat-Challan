@@ -13,6 +13,7 @@
   "retailer_id",
   "retailer_transaction_ref",
   "bank_transaction_id",
+  "branch",
   "section_break_ztqm",
   "buyer_info",
   "transaction_information",
@@ -116,8 +117,9 @@
   },
   {
    "fieldname": "payment_method",
-   "fieldtype": "Data",
-   "label": "Payment Method"
+   "fieldtype": "Link",
+   "label": "Payment Method",
+   "options": "Mode of Payment"
   },
   {
    "fieldname": "total_discount_amount",
@@ -206,12 +208,18 @@
    "fieldname": "response",
    "fieldtype": "Text",
    "label": "Response"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Retailer Branch Registration"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-04 10:28:37.750304",
+ "modified": "2025-09-07 16:11:31.906284",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "VAT Invoice",

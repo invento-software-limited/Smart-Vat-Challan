@@ -53,6 +53,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "fetch_from": "retailer.retailer_id",
    "fieldname": "retailer_id",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -88,11 +89,13 @@
   },
   {
    "fieldname": "zone",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Zone",
+   "options": "VC Zone",
    "reqd": 1
   },
   {
+   "fetch_from": "zone.zone_id",
    "fieldname": "zone_id",
    "fieldtype": "Data",
    "hidden": 1,
@@ -100,11 +103,13 @@
   },
   {
    "fieldname": "vat_commission_rate",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "VAT Commission Rate",
+   "options": "VC VAT Commission Rate",
    "reqd": 1
   },
   {
+   "fetch_from": "vat_commission_rate.vat_commission_rate_id",
    "fieldname": "vat_commissionrate_id",
    "fieldtype": "Data",
    "hidden": 1,
@@ -112,11 +117,13 @@
   },
   {
    "fieldname": "division",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Division",
+   "options": "VC Division",
    "reqd": 1
   },
   {
+   "fetch_from": "division.division_id",
    "fieldname": "division_id",
    "fieldtype": "Data",
    "hidden": 1,
@@ -124,11 +131,13 @@
   },
   {
    "fieldname": "circle",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Circle",
+   "options": "VC Circle",
    "reqd": 1
   },
   {
+   "fetch_from": "circle.circle_id",
    "fieldname": "circle_id",
    "fieldtype": "Data",
    "hidden": 1,
@@ -151,7 +160,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-03 11:27:05.066706",
+ "modified": "2025-09-07 16:19:22.355476",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Retailer Branch Registration",
