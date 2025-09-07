@@ -217,9 +217,10 @@
   }
  ],
  "grid_page_length": 50,
+ "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-07 16:11:31.906284",
+ "modified": "2025-09-07 18:25:40.689551",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "VAT Invoice",
