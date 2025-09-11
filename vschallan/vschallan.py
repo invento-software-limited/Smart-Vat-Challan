@@ -1,6 +1,7 @@
-import os
 import frappe
 import requests
+import xmltodict
+import json
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth
 import xml.etree.ElementTree as ET
@@ -21,43 +22,35 @@ class VATSmartChallan:
 
 	def __init__(self):
 		"""
-		Initialize the client using configuration stored in POS Vendor Configuration.
+		Initialize the client using configuration stored in POS Vendor Configuration (Single Doctype).
 
 		Loads and validates configuration, decrypts secrets, sets up token and cache directory.
 
 		Raises:
 			frappe.ValidationError: If configuration is missing or disabled.
 		"""
-		config_data = frappe.db.get_value(
-			"POS Vendor Configuration",
-			{},
-			["name", "base_url", "client_id", "expiry_date", "company_id", "disabled"],
-			as_dict=True
-		)
+		config_data = frappe.db.get_singles_dict("POS Vendor Configuration")
 
 		if not config_data:
 			frappe.throw("No POS Vendor Configuration found")
 
-		if config_data.disabled == 1:
+		if config_data.get("disabled") == 1:
 			frappe.throw("POS Vendor Configuration is disabled")
 
-		self.docname = config_data.name
-		self.base_url = config_data.base_url
-		self.client_id = config_data.client_id
-		self.access_token = get_decrypted_password("POS Vendor Configuration", self.docname,
-												   "access_token")
-		self.expiry_date = config_data.expiry_date
-		self.company_id = config_data.company_id
-		self.client_secret = get_decrypted_password("POS Vendor Configuration", self.docname,
-													"client_secret")
-
-		self.cache_dir = os.path.join(frappe.get_site_path(), "cache")
-		if not os.path.exists(self.cache_dir):
-			os.makedirs(self.cache_dir)
+		self.docname = "POS Vendor Configuration"  # single doctypes always use their own name
+		self.base_url = config_data.get("base_url")
+		self.client_id = config_data.get("client_id")
+		self.access_token = config_data.get("access_token")
+		self.expiry_date = config_data.get("expiry_date")
+		self.company_id = config_data.get("company_id")
+		self.client_secret = get_decrypted_password(
+			"POS Vendor Configuration", self.docname, "client_secret"
+		)
 
 	def get_access_token(self, force_refresh=False):
 		"""
 		Get a valid access token, refreshing if needed.
+		Handles both XML and JSON responses from the API.
 
 		Args:
 			force_refresh (bool): If True, forces a fresh token request regardless of current state.
@@ -72,6 +65,7 @@ class VATSmartChallan:
 		Raises:
 			frappe.ValidationError: If token retrieval fails or response parsing fails.
 		"""
+		# Return cached token if valid
 		if self.access_token and not force_refresh and self.expiry_date:
 			try:
 				expiry_datetime = datetime.strptime(self.expiry_date, "%Y-%m-%d %H:%M:%S")
@@ -95,42 +89,48 @@ class VATSmartChallan:
 				timeout=30
 			)
 			response.raise_for_status()
-			raw_content = response.text
+			raw_content = response.text.strip()
 
-			try:
-				root = ET.fromstring(raw_content)
+			# Detect response format
+			if raw_content.startswith("{") or raw_content.startswith("["):
+				# JSON response
+				try:
+					data = json.loads(raw_content)
+					self.access_token = data.get("access_token")
+					self.expiry_date = data.get("expiry_time")
+					self.company_id = data.get("company_id")
+				except Exception as e:
+					frappe.throw(f"Failed to parse JSON response: {raw_content}\nError: {str(e)}")
+			else:
+				# XML response
+				try:
+					root = ET.fromstring(raw_content)
+					access_token_elem = root.find(".//access_token")
+					expiry_time_elem = root.find(".//expiry_time")
+					company_id_elem = root.find(".//company_id")
 
-				access_token_elem = root.find(".//access_token")
-				expiry_time_elem = root.find(".//expiry_time")
-				company_id_elem = root.find(".//company_id")
+					if access_token_elem is None:
+						frappe.throw(f"No access_token found in XML response: {raw_content}")
 
-				if access_token_elem is None:
-					frappe.throw(f"No access_token found in response: {raw_content}")
+					self.access_token = access_token_elem.text
+					self.expiry_date = expiry_time_elem.text if expiry_time_elem is not None else None
+					self.company_id = company_id_elem.text if company_id_elem is not None else None
 
-				self.access_token = access_token_elem.text
-				self.expiry_date = expiry_time_elem.text if expiry_time_elem is not None else None
-				self.company_id = company_id_elem.text if company_id_elem is not None else None
+				except ET.ParseError:
+					frappe.throw(f"Failed to parse XML response: {raw_content}")
 
-				frappe.db.set_value(
-					"POS Vendor Configuration",
-					self.docname,
-					{
-						"access_token": self.access_token,
-						"expiry_date": self.expiry_date,
-						"company_id": self.company_id
-					}
-				)
+			# Save to Single Doc
+			frappe.db.set_single_value("POS Vendor Configuration", "access_token",
+									   self.access_token)
+			frappe.db.set_single_value("POS Vendor Configuration", "expiry_date", self.expiry_date)
+			frappe.db.set_single_value("POS Vendor Configuration", "company_id", self.company_id)
+			frappe.db.commit()
 
-				frappe.db.commit()
-
-				return {
-					"access_token": self.access_token,
-					"expiry_date": self.expiry_date,
-					"company_id": self.company_id
-				}
-
-			except ET.ParseError:
-				frappe.throw(f"Failed to parse XML: {raw_content}")
+			return {
+				"access_token": self.access_token,
+				"expiry_date": self.expiry_date,
+				"company_id": self.company_id
+			}
 
 		except requests.exceptions.RequestException as e:
 			frappe.throw(f"Failed to authenticate vendor: {str(e)}")
@@ -155,53 +155,34 @@ class VATSmartChallan:
 		Behavior:
 			- Calls /integration/zone.
 			- Refreshes token and retries on 401.
-			- Parses XML and inserts missing records into "VC Zone" by unique zone_id.
-
-		Raises:
-			frappe.ValidationError: On HTTP failure or XML parsing issues.
+			- Uses common parser to handle XML/JSON.
+			- Inserts missing records into "VC Zone" by unique zone_id.
 		"""
+		url = f"{self.base_url}/integration/zone"
+		parsed_data = self.get_response_data(url, "GET")
 
-		def fetch_zones():
-			url = f"{self.base_url}/integration/zone"
-			headers = self.get_header()
-			response = requests.get(url, headers=headers, timeout=30)
-			return response
+		zones = []
+		if isinstance(parsed_data, dict):
+			data = parsed_data.get("data") or parsed_data
+			zone_data = data.get("zone")
+			if isinstance(zone_data, list):
+				zones = zone_data
+			elif isinstance(zone_data, dict):
+				zones = [zone_data]
 
-		try:
-			response = fetch_zones()
+		for z in zones:
+			zone_id = z.get("id")
+			zone_name = z.get("name")
 
-			if response.status_code == 401:
-				# Refresh token if unauthorized
-				self.get_access_token(force_refresh=True)
-				response = fetch_zones()
-
-			response.raise_for_status()
-			raw_content = response.text
-
-			try:
-				root = ET.fromstring(raw_content)
-				for zone in root.findall(".//zone"):
-					zone_id = zone.find("id").text if zone.find("id") is not None else None
-					zone_name = zone.find("name").text if zone.find("name") is not None else None
-
-					if zone_id and zone_name:
-						# Check if zone already exists
-						exists = frappe.db.exists("VC Zone", {"zone_id": zone_id})
-						if not exists:
-							# Create new VC Zone
-							doc = frappe.get_doc({
-								"doctype": "VC Zone",
-								"zone_id": zone_id,
-								"zone_name": zone_name
-							})
-							doc.insert(ignore_permissions=True)
-							frappe.db.commit()
-
-			except ET.ParseError:
-				frappe.throw(f"Failed to parse XML response: {raw_content}")
-
-		except requests.exceptions.RequestException as e:
-			frappe.throw(f"Failed to fetch zones: {str(e)}")
+			if zone_id and zone_name:
+				if not frappe.db.exists("VC Zone", {"zone_id": zone_id}):
+					doc = frappe.get_doc({
+						"doctype": "VC Zone",
+						"zone_id": zone_id,
+						"zone_name": zone_name
+					})
+					doc.insert(ignore_permissions=True)
+					frappe.db.commit()
 
 	def get_vat_commission_rate(self):
 		"""
@@ -209,59 +190,40 @@ class VATSmartChallan:
 
 		Behavior:
 			- Calls /integration/vat_commissionrate.
-			- Refreshes token and retries on 401.
-			- Parses XML and inserts missing "VC VAT Commission Rate" records by vat_commission_rate_id.
+			- Uses common parser (XML/JSON).
+			- Inserts missing "VC VAT Commission Rate" records by vat_commission_rate_id.
 			- Links each rate to its "VC Zone" using zone_id.
-
-		Raises:
-			frappe.ValidationError: On HTTP failure or XML parsing issues.
 		"""
 		url = f"{self.base_url}/integration/vat_commissionrate"
-		headers = self.get_header()
+		parsed_data = self.get_response_data(url, "GET")
 
-		try:
-			response = requests.get(url, headers=headers, timeout=30)
+		rates = []
+		if isinstance(parsed_data, dict):
+			data = parsed_data.get("data") or parsed_data
+			rate_data = data.get("vat_commissionrate")
+			if isinstance(rate_data, list):
+				rates = rate_data
+			elif isinstance(rate_data, dict):
+				rates = [rate_data]
 
-			if response.status_code == 401:
-				# Refresh token if unauthorized
-				self.get_access_token(force_refresh=True)
-				headers = self.get_header()
-				response = requests.get(url, headers=headers, timeout=30)
+		for r in rates:
+			rate_id = r.get("id")
+			name = r.get("name")
+			zone_id_elem = r.get("zone_id")
 
-			response.raise_for_status()
-			raw_content = response.text
+			if rate_id and name and zone_id_elem:
+				if not frappe.db.exists("VC VAT Commission Rate",
+										{"vat_commission_rate_id": rate_id}):
+					zone_doc = frappe.get_value("VC Zone", {"zone_id": zone_id_elem}, "name")
 
-			try:
-				root = ET.fromstring(raw_content)
-
-				for rate in root.findall(".//data/vat_commissionrate"):
-					rate_id = rate.find("id").text if rate.find("id") is not None else None
-					name = rate.find("name").text if rate.find("name") is not None else None
-					zone_id_elem = rate.find("zone_id").text if rate.find(
-						"zone_id") is not None else None
-
-					if rate_id and name and zone_id_elem:
-						exists = frappe.db.exists("VC VAT Commission Rate",
-												  {"vat_commission_rate_id": rate_id})
-						if not exists:
-							zone_doc = frappe.get_value("VC Zone", {"zone_id": zone_id_elem},
-														"name")
-
-							doc = frappe.get_doc({
-								"doctype": "VC VAT Commission Rate",
-								"vat_commission_rate_id": rate_id,
-								"vat_commission_rate_name": name,
-								"zone": zone_doc
-							})
-							doc.insert(ignore_permissions=True)
-							frappe.db.commit()
-
-
-			except ET.ParseError:
-				frappe.throw(f"Failed to parse XML response: {raw_content}")
-
-		except requests.exceptions.RequestException as e:
-			frappe.throw(f"Failed to fetch VAT commission rates: {str(e)}")
+					doc = frappe.get_doc({
+						"doctype": "VC VAT Commission Rate",
+						"vat_commission_rate_id": rate_id,
+						"vat_commission_rate_name": name,
+						"zone": zone_doc
+					})
+					doc.insert(ignore_permissions=True)
+					frappe.db.commit()
 
 	def get_division(self):
 		"""
@@ -270,52 +232,41 @@ class VATSmartChallan:
 		Link each division to VC Zone and VC VAT Commission Rate.
 		"""
 		url = f"{self.base_url}/integration/division"
-		headers = self.get_header()
+		parsed_data = self.get_response_data(url, "GET")
 
-		try:
-			response = requests.get(url, headers=headers, timeout=30)
+		divisions = []
+		if isinstance(parsed_data, dict):
+			data = parsed_data.get("data") or parsed_data
+			div_data = data.get("division")
+			if isinstance(div_data, list):
+				divisions = div_data
+			elif isinstance(div_data, dict):
+				divisions = [div_data]
 
-			if response.status_code == 401:
-				self.get_access_token(force_refresh=True)
-				headers = self.get_header()
-				response = requests.get(url, headers=headers, timeout=30)
+		for d in divisions:
+			div_id = d.get("id")
+			name = d.get("name")
+			zone_id = d.get("zone_id")
+			vat_commissionrate_id_elem = d.get("vat_commissionrate_id")
 
-			response.raise_for_status()
-			raw_content = response.text
+			if div_id and name and zone_id and vat_commissionrate_id_elem:
+				if not frappe.db.exists("VC Division", {"division_id": div_id}):
+					zone_doc = frappe.get_value("VC Zone", {"zone_id": zone_id}, "name")
+					vat_rate_doc = frappe.get_value(
+						"VC VAT Commission Rate",
+						{"vat_commission_rate_id": vat_commissionrate_id_elem},
+						"name"
+					)
 
-			try:
-				root = ET.fromstring(raw_content)
-
-				for div in root.findall(".//data/division"):
-					div_id = div.find("id").text if div.find("id") is not None else None
-					name = div.find("name").text if div.find("name") is not None else None
-					zone_id = div.find("zone_id").text if div.find("zone_id") is not None else None
-					vat_commissionrate_id_elem = div.find(
-						"vat_commissionrate_id").text if div.find(
-						"vat_commissionrate_id") is not None else None
-
-					if div_id and name and zone_id and vat_commissionrate_id_elem:
-						exists = frappe.db.exists("VC Division", {"division_id": div_id})
-						if not exists:
-							zone_doc = frappe.get_value("VC Zone", {"zone_id": zone_id}, "name")
-							vat_rate_doc = frappe.get_value("VC VAT Commission Rate", {
-								"vat_commission_rate_id": vat_commissionrate_id_elem}, "name")
-
-							doc = frappe.get_doc({
-								"doctype": "VC Division",
-								"division_id": div_id,
-								"division_name": name,
-								"zone": zone_doc,
-								"vat_commission_rate": vat_rate_doc
-							})
-							doc.insert(ignore_permissions=True)
-							frappe.db.commit()
-
-			except ET.ParseError:
-				frappe.throw(f"Failed to parse XML response: {raw_content}")
-
-		except requests.exceptions.RequestException as e:
-			frappe.throw(f"Failed to fetch divisions: {str(e)}")
+					doc = frappe.get_doc({
+						"doctype": "VC Division",
+						"division_id": div_id,
+						"division_name": name,
+						"zone": zone_doc,
+						"vat_commission_rate": vat_rate_doc
+					})
+					doc.insert(ignore_permissions=True)
+					frappe.db.commit()
 
 	def get_circle(self):
 		"""
@@ -324,63 +275,52 @@ class VATSmartChallan:
 		Link each circle to VC Division, VC Zone, and VC VAT Commission Rate.
 		"""
 		url = f"{self.base_url}/integration/circle"
-		headers = self.get_header()
+		parsed_data = self.get_response_data(url, "GET")
 
-		try:
-			response = requests.get(url, headers=headers, timeout=30)
+		circles = []
+		if isinstance(parsed_data, dict):
+			data = parsed_data.get("data")
+			if data:
+				circle_data = data.get("circle")
+				if isinstance(circle_data, list):
+					circles = circle_data
+				elif isinstance(circle_data, dict):
+					circles = [circle_data]
 
-			if response.status_code == 401:
-				self.get_access_token(force_refresh=True)
-				headers = self.get_header()
-				response = requests.get(url, headers=headers, timeout=30)
+		for c in circles:
+			circle_id = c.get("id")
+			name = c.get("name")
+			zone_id = c.get("zone_id")
+			vat_commissionrate_id = c.get("vat_commissionrate_id")
+			division_id_elem = c.get("division_id")
 
-			response.raise_for_status()
-			raw_content = response.text
+			if not (circle_id and name and division_id_elem):
+				continue  # skip invalid record
 
-			try:
-				root = ET.fromstring(raw_content)
+			# Skip if already exists
+			if frappe.db.exists("VC Circle", {"circle_id": circle_id}):
+				continue
 
-				for c in root.findall(".//data/circle"):
-					circle_id = c.find("id").text if c.find("id") is not None else None
-					name = c.find("name").text if c.find("name") is not None else None
-					zone_id = c.find("zone_id").text if c.find("zone_id") is not None else None
-					vat_commissionrate_id = c.find("vat_commissionrate_id").text if c.find(
-						"vat_commissionrate_id") is not None else None
-					division_id_elem = c.find("division_id").text if c.find(
-						"division_id") is not None else None
+			division_doc = frappe.get_value("VC Division",
+											{"division_id": division_id_elem},
+											"name")
+			zone_doc = frappe.get_value("VC Zone",
+										{"zone_id": zone_id},
+										"name")
+			vat_rate_doc = frappe.get_value("VC VAT Commission Rate",
+											{"vat_commission_rate_id": vat_commissionrate_id},
+											"name")
 
-					if circle_id and name and division_id_elem:
-						# Check if circle already exists
-						exists = frappe.db.exists("VC Circle", {"circle_id": circle_id})
-						if not exists:
-							# Get linked VC Division
-							division_doc = frappe.get_value("VC Division",
-															{"division_id": division_id_elem},
-															"name")
-							zone_doc = None
-							if division_doc:
-								zone_doc = frappe.get_value("VC Division", division_doc, "zone")
-							vat_rate_doc = None
-							if division_doc:
-								vat_rate_doc = frappe.get_value("VC Division", division_doc,
-																"vat_commission_rate")
-
-							doc = frappe.get_doc({
-								"doctype": "VC Circle",
-								"circle_id": circle_id,
-								"circle_name": name,
-								"division": division_doc,
-								"zone": zone_doc,
-								"vat_commission_rate": vat_rate_doc
-							})
-							doc.insert(ignore_permissions=True)
-							frappe.db.commit()
-
-			except ET.ParseError:
-				frappe.throw(f"Failed to parse XML response: {raw_content}")
-
-		except requests.exceptions.RequestException as e:
-			frappe.throw(f"Failed to fetch circles: {str(e)}")
+			doc = frappe.get_doc({
+				"doctype": "VC Circle",
+				"circle_id": circle_id,
+				"circle_name": name,
+				"division": division_doc,
+				"zone": zone_doc,
+				"vat_commission_rate": vat_rate_doc
+			})
+			doc.insert(ignore_permissions=True)
+			frappe.db.commit()
 
 	def get_service_types(self):
 		"""
@@ -388,62 +328,60 @@ class VATSmartChallan:
 		Avoid duplicates based on service_id.
 		"""
 		url = f"{self.base_url}/integration/retailer_service_type"
-		headers = self.get_header()
+		parsed_data = self.get_response_data(url, "GET")
 
-		try:
-			response = requests.get(url, headers=headers, timeout=30)
+		services = []
+		if isinstance(parsed_data, dict):
+			# Handle {"data": {"retailer_service_types": [...]}}
+			data = parsed_data.get("data")
+			if data:
+				service_data = data.get("retailer_service_types")
+				if isinstance(service_data, list):
+					services = service_data
+				elif isinstance(service_data, dict):
+					services = [service_data]
 
-			if response.status_code == 401:
-				# Refresh token if unauthorized
-				self.get_access_token(force_refresh=True)
-				headers = self.get_header()
-				response = requests.get(url, headers=headers, timeout=30)
+		for service in services:
+			service_id = service.get("id")
+			heading_code = service.get("heading_code")
+			service_code = service.get("service_code")
+			service_name = service.get("service_name")
+			vat_rate = service.get("vat_rate")
 
-			response.raise_for_status()
-			raw_content = response.text
+			if not (service_id and service_name):
+				continue  # skip invalid
 
-			try:
-				root = ET.fromstring(raw_content)
-				for service in root.findall(".//retailer_service_types"):
-					service_id = service.findtext("id")
-					heading_code = service.findtext("heading_code")
-					service_code = service.findtext("service_code")
-					service_name = service.findtext("service_name")
-					vat_rate = service.findtext("vat_rate")
+			# Check if service already exists
+			exists = frappe.db.exists("VC Service Type", {"service_id": service_id})
+			if exists:
+				continue
 
-					if service_id and service_name:
-						# Check if service already exists
-						exists = frappe.db.exists("VC Service Type", {"service_id": service_id})
-						if not exists:
-							doc = frappe.get_doc({
-								"doctype": "VC Service Type",
-								"service_id": service_id,
-								"heading_code": heading_code,
-								"service_code": service_code,
-								"service_name": service_name,
-								"vat_rate": vat_rate
-							})
-							doc.insert(ignore_permissions=True)
-							frappe.db.commit()
-
-			except ET.ParseError:
-				frappe.throw(f"Failed to parse XML response: {raw_content}")
-
-		except requests.exceptions.RequestException as e:
-			frappe.throw(f"Failed to fetch Retailer Service Types: {str(e)}")
+			doc = frappe.get_doc({
+				"doctype": "VC Service Type",
+				"service_id": service_id,
+				"heading_code": heading_code,
+				"service_code": service_code,
+				"service_name": service_name,
+				"vat_rate": vat_rate
+			})
+			doc.insert(ignore_permissions=True)
+			frappe.db.commit()
 
 	def register_retailer(self, doc):
 		"""
-		Register a retailer via external API using RetailerRegistration doc fields
+		Register a retailer via external API using RetailerRegistration doc fields.
+		Handles both XML and JSON responses.
 		"""
 		url = f"{self.base_url}/integration/retail_registration"
 
+		# Collect service types
 		type_of_business_list = []
 		if hasattr(doc, "service_types") and doc.service_types:
 			for row in doc.service_types:
 				if row.type_id:
 					type_of_business_list.append(row.type_id)
 
+		# Prepare payload
 		payload = {
 			"owner_full_name": doc.owner_full_name,
 			"owner_cc": doc.owner_cc,
@@ -463,30 +401,21 @@ class VATSmartChallan:
 			"zone_id": doc.zone_id,
 			"vat_commissionrate_id": doc.vat_commissionrate_id,
 			"division_id": doc.division_id,
-			"circle_id": doc.circle_id
+			"circle_id": doc.circle_id,
 		}
 
 		try:
-			response = requests.post(url, headers=self.get_header(), json=payload, timeout=30)
-			if response.status_code == 401:
-				self.get_access_token(force_refresh=True)
-				response = requests.post(url, headers=self.get_header(), json=payload, timeout=30)
-			response.raise_for_status()
-			raw_content = response.text
+			parsed_data = self.get_response_data(url, "POST", payload)
+			doc.db_set("server_response", json.dumps(parsed_data, indent=2))
+			status_code = str(parsed_data.get("status_code"))
+			success = parsed_data.get("success")
+			error_msg = parsed_data.get("error")
+			data_elem = parsed_data.get("data")
 
-			root = ET.fromstring(raw_content)
-
-			status_code = root.findtext("status_code")
-			success = root.findtext("success")
-			error_msg = root.findtext("error")
-			data_elem = root.find("data")
-
-			if status_code == "200" and data_elem is not None:
-				message = data_elem.findtext("message")
-
-
-				retailer_id = data_elem.findtext("retailer_id")
-				retailer_number = data_elem.findtext("retailer_number")
+			if status_code == "200" and data_elem:
+				message = data_elem.get("message")
+				retailer_id = data_elem.get("retailer_id")
+				retailer_number = data_elem.get("retailer_number")
 
 				if retailer_id and retailer_number:
 					doc.db_set("status_code", status_code)
@@ -494,10 +423,10 @@ class VATSmartChallan:
 					frappe.msgprint(f"Retailer registered successfully: {retailer_number}")
 
 				else:
-					retailer_details = data_elem.find("retailer_details")
-					if retailer_details is not None:
-						existing_id = retailer_details.findtext("retailer_id")
-						existing_number = retailer_details.findtext("retailer_number")
+					retailer_details = data_elem.get("retailer_details")
+					if retailer_details:
+						existing_id = retailer_details.get("retailer_id")
+						existing_number = retailer_details.get("retailer_number")
 						doc.db_set("status_code", status_code)
 						doc.db_set("retailer_id", existing_id)
 
@@ -505,7 +434,9 @@ class VATSmartChallan:
 							f"Retailer already exists ({message}): {existing_number}"
 						)
 					else:
-						frappe.throw(f"Retailer registration failed: {message or 'Unknown error'}")
+						frappe.throw(
+							f"Retailer registration failed: {message or 'Unknown error'}"
+						)
 
 			elif success == "0":
 				frappe.throw(f"Retailer registration failed: {error_msg or 'Unknown error'}")
@@ -513,11 +444,101 @@ class VATSmartChallan:
 			else:
 				frappe.throw("Unexpected response format from API")
 
-		except ET.ParseError:
-			frappe.throw(f"Failed to parse XML response: {raw_content}")
 		except requests.exceptions.HTTPError as e:
 			frappe.throw(f"HTTP Error: {str(e)}")
 		except requests.exceptions.RequestException as e:
 			frappe.throw(f"Request Error: {str(e)}")
 
+	def parse_xml_to_json(self, xml_string):
+		"""
+		Convert XML string to JSON dict
+		"""
+		try:
+			return xmltodict.parse(xml_string)
+		except Exception as e:
+			frappe.throw(f"Failed to convert XML to JSON: {str(e)}")
 
+	def detect_response_format(self, response_text: str) -> str:
+		"""
+		Detects if a response string is in XML or JSON format.
+
+		Returns:
+			"json" if JSON,
+			"xml" if XML,
+			"unknown" if neither.
+		"""
+		response_text = response_text.strip()
+
+		# Try JSON
+		try:
+			json.loads(response_text)
+			return "json"
+		except (json.JSONDecodeError, TypeError):
+			pass
+
+		# Try XML
+		try:
+			ET.fromstring(response_text)
+			return "xml"
+		except ET.ParseError:
+			pass
+
+		return "unknown"
+
+	def get_response_data(self, url: str, request_type: str, payload: dict = None):
+		"""
+				Perform an authenticated HTTP request and return parsed response data.
+
+				Behavior:
+				- Sends GET or POST requests with Authorization headers.
+				- Automatically refreshes the access token and retries once on HTTP 401.
+				- Detects response format (XML/JSON) and returns a parsed Python dict.
+				  For XML responses, the "ObjectNode" element is extracted after conversion.
+
+				Args:
+					url (str): The API endpoint URL.
+					request_type (str): "GET" or "POST".
+					payload (dict, optional): JSON-serializable body for POST requests.
+
+				Returns:
+					dict | list | None: Parsed response content. For XML, the value of "ObjectNode".
+					                    For JSON, the decoded JSON structure.
+
+				Raises:
+					frappe.ValidationError: If request_type is invalid or if response format is unknown.
+					requests.exceptions.RequestException: For network/HTTP errors (after retry logic).
+				"""
+
+		headers = self.get_header()
+		try:
+			if request_type == "GET":
+				response = requests.get(url, headers=headers, timeout=30)
+			elif request_type == "POST":
+				response = requests.post(url, headers=headers, json=payload, timeout=30)
+			else:
+				frappe.throw("Invalid request type")
+
+			# Retry if unauthorized
+			if response.status_code == 401:
+				self.get_access_token(force_refresh=True)
+				headers = self.get_header()
+
+				if request_type == "GET":
+					response = requests.get(url, headers=headers, timeout=30)
+				elif request_type == "POST":
+					response = requests.post(url, headers=headers, json=payload, timeout=30)
+
+			response.raise_for_status()
+			raw_content = response.text
+			format_type = self.detect_response_format(raw_content)
+
+			if format_type == "xml":
+				converted_data = self.parse_xml_to_json(raw_content)
+				parsed_data = converted_data.get("ObjectNode")
+			elif format_type == "json":
+				parsed_data = json.loads(raw_content)
+			else:
+				frappe.throw("Unknown response format from API")
+			return parsed_data
+		except requests.exceptions.RequestException as e:
+			frappe.throw(str(e))

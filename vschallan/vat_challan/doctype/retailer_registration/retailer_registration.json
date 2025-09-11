@@ -323,8 +323,9 @@
   },
   {
    "fieldname": "server_response",
-   "fieldtype": "Long Text",
-   "label": "Server Response"
+   "fieldtype": "Text",
+   "label": "Server Response",
+   "options": "XML"
   },
   {
    "fieldname": "retailer_id",
@@ -336,7 +337,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-04 14:59:47.427195",
+ "modified": "2025-09-11 14:47:18.372190",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Retailer Registration",
