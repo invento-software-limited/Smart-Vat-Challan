@@ -36,7 +36,7 @@ A production-ready ERPNext app that integrates with the Government of Bangladesh
 Install using the Bench CLI:
 ```bash
 bash cd PATH_TO_YOUR_BENCH
-bench get-appURL_OF_THIS_REPO --branch develop
+bench get-appURL_OF_THIS_REPO --branch main
 bench install-app vschallan
 bench migrate
 
