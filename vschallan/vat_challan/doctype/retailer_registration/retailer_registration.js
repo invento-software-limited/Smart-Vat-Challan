@@ -38,6 +38,24 @@ frappe.ui.form.on("Retailer Registration", {
 				};
 			});
 		}
+	},
+	nid_document: function (frm) {
+		if (frm.doc.nid_document) {
+			frappe.call({
+				method: "vschallan.vat_challan.doctype.retailer_registration.retailer_registration.upload_file",
+				args: {
+					file_path: frm.doc.nid_document,
+					retailer_id: frm.doc.retailer_id,
+					document_category_key: "nid_document"
+				},
+				callback: function (r) {
+					if (r.message) {
+						frappe.msgprint("File uploaded successfully");
+					}
+				}
+			});
+
+		}
 	}
 });
 

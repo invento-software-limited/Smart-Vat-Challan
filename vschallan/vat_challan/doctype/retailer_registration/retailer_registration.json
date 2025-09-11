@@ -263,6 +263,8 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.docstatus==1",
    "fieldname": "nid_document",
    "fieldtype": "Attach",
    "label": "NID"
@@ -272,6 +274,8 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.docstatus==1",
    "fieldname": "bin_document",
    "fieldtype": "Attach",
    "label": "BIN"
@@ -281,6 +285,8 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.docstatus==1",
    "fieldname": "trade_document",
    "fieldtype": "Attach",
    "label": "Trade License"
@@ -290,6 +296,8 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.docstatus==1",
    "fieldname": "tin_document",
    "fieldtype": "Attach",
    "label": "TIN"
@@ -323,9 +331,8 @@
   },
   {
    "fieldname": "server_response",
-   "fieldtype": "Text",
-   "label": "Server Response",
-   "options": "XML"
+   "fieldtype": "JSON",
+   "label": "Server Response"
   },
   {
    "fieldname": "retailer_id",
@@ -337,7 +344,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-11 14:47:18.372190",
+ "modified": "2025-09-11 17:23:51.635743",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Retailer Registration",

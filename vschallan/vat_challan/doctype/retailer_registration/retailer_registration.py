@@ -54,3 +54,19 @@ def get_circle(force_refresh=False, division_id=None):
 		division_id=division_id
 	)
 	return result
+
+
+@frappe.whitelist()
+def upload_file(retailer_id, document_category_key, file_path):
+	"""
+	Whitelisted wrapper to upload a retailer document file to NBR API.
+
+	Args:
+		retailer_id (str): Retailer's ID.
+		document_category_key (str): Document type key (nid_document, trade_license, etc.).
+		file_path (str): Path to the local file to upload.
+	"""
+	vschallan = VATSmartChallan()
+	return vschallan.upload_file(document_category_key=document_category_key,
+								 file_path=file_path,
+								 retailer_id=retailer_id)

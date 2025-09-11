@@ -1,3 +1,4 @@
+import os
 import frappe
 import requests
 import xmltodict
@@ -485,36 +486,44 @@ class VATSmartChallan:
 
 		return "unknown"
 
-	def get_response_data(self, url: str, request_type: str, payload: dict = None):
+	def get_response_data(self, url: str, request_type: str, payload: dict = None,
+						  files: dict = None):
 		"""
-				Perform an authenticated HTTP request and return parsed response data.
+		Perform an authenticated HTTP request and return parsed response data.
 
-				Behavior:
-				- Sends GET or POST requests with Authorization headers.
-				- Automatically refreshes the access token and retries once on HTTP 401.
-				- Detects response format (XML/JSON) and returns a parsed Python dict.
-				  For XML responses, the "ObjectNode" element is extracted after conversion.
+		Behavior:
+		- Sends GET or POST requests with Authorization headers.
+		- Automatically refreshes the access token and retries once on HTTP 401.
+		- Detects response format (XML/JSON) and returns a parsed Python dict.
+		  For XML responses, the "ObjectNode" element is extracted after conversion.
+		- Supports file uploads via multipart/form-data if `files` is provided.
 
-				Args:
-					url (str): The API endpoint URL.
-					request_type (str): "GET" or "POST".
-					payload (dict, optional): JSON-serializable body for POST requests.
+		Args:
+			url (str): The API endpoint URL.
+			request_type (str): "GET" or "POST".
+			payload (dict, optional): JSON-serializable body for POST requests.
+			files (dict, optional): Dictionary of files for multipart upload, e.g. {"file": open("path", "rb")}.
 
-				Returns:
-					dict | list | None: Parsed response content. For XML, the value of "ObjectNode".
-					                    For JSON, the decoded JSON structure.
+		Returns:
+			dict | list | None: Parsed response content. For XML, the value of "ObjectNode".
+								For JSON, the decoded JSON structure.
 
-				Raises:
-					frappe.ValidationError: If request_type is invalid or if response format is unknown.
-					requests.exceptions.RequestException: For network/HTTP errors (after retry logic).
-				"""
-
+		Raises:
+			frappe.ValidationError: If request_type is invalid or if response format is unknown.
+			requests.exceptions.RequestException: For network/HTTP errors (after retry logic).
+		"""
 		headers = self.get_header()
+
 		try:
+			# Determine request method
 			if request_type == "GET":
 				response = requests.get(url, headers=headers, timeout=30)
 			elif request_type == "POST":
-				response = requests.post(url, headers=headers, json=payload, timeout=30)
+				if files:
+					response = requests.post(url, headers=headers, data=payload, files=files,
+											 timeout=30)
+				else:
+					response = requests.post(url, headers=headers, json=payload, timeout=30)
 			else:
 				frappe.throw("Invalid request type")
 
@@ -522,23 +531,81 @@ class VATSmartChallan:
 			if response.status_code == 401:
 				self.get_access_token(force_refresh=True)
 				headers = self.get_header()
-
 				if request_type == "GET":
 					response = requests.get(url, headers=headers, timeout=30)
 				elif request_type == "POST":
-					response = requests.post(url, headers=headers, json=payload, timeout=30)
+					if files:
+						response = requests.post(url, headers=headers, data=payload, files=files,
+												 timeout=30)
+					else:
+						response = requests.post(url, headers=headers, json=payload, timeout=30)
 
 			response.raise_for_status()
 			raw_content = response.text
 			format_type = self.detect_response_format(raw_content)
 
+			# Parse response
 			if format_type == "xml":
 				converted_data = self.parse_xml_to_json(raw_content)
-				parsed_data = converted_data.get("ObjectNode")
+				parsed_data = converted_data.get("ObjectNode", converted_data)
 			elif format_type == "json":
 				parsed_data = json.loads(raw_content)
 			else:
 				frappe.throw("Unknown response format from API")
+
 			return parsed_data
+
 		except requests.exceptions.RequestException as e:
 			frappe.throw(str(e))
+		finally:
+			if files:
+				for f in files.values():
+					f.close()
+
+	def upload_file(self, document_category_key: str, file_path: str, retailer_id: str):
+		"""
+		Upload a document file for a retailer to the NBR API using common response handling.
+
+		Args:
+			document_category_key (str): Document category key.
+			file_path (str): Local file path to upload.
+			retailer_id (str): Retailer's ID.
+
+		Returns:
+			dict: API response containing message and uploaded file URL.
+
+		Raises:
+			frappe.ValidationError: On upload failure or invalid response.
+		"""
+		absolute_file_path = frappe.get_site_path("public", file_path.lstrip("/"))
+
+		if not os.path.exists(absolute_file_path):
+			frappe.throw(f"File does not exist: {absolute_file_path}")
+
+		url = f"{self.base_url}/integration/upload_file"
+
+		files = {"file": open(absolute_file_path, "rb")}
+		payload = {
+			"retailer_id": retailer_id,
+			"document_category_key": document_category_key
+		}
+
+		try:
+			parsed_data = self.get_response_data(url, request_type="POST", payload=payload,
+												 files=files)
+
+			# Handle response
+			status_code = str(parsed_data.get("status_code") or parsed_data.get("code"))
+			if status_code == "200":
+				data = parsed_data.get("data", {})
+				message = data.get("message")
+				file_url = data.get("upload_file_url")
+				frappe.msgprint(f"{message}: {file_url}")
+				return data
+			else:
+				error_msg = parsed_data.get("message") or parsed_data.get(
+					"error") or "Unknown error"
+				frappe.throw(f"File upload failed: {error_msg}")
+
+		except requests.exceptions.RequestException as e:
+			frappe.throw(f"Request Error: {str(e)}")
