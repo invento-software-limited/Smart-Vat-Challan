@@ -3,10 +3,12 @@ import frappe
 import requests
 import xmltodict
 import json
+import mimetypes
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth
 import xml.etree.ElementTree as ET
 from datetime import datetime
+from frappe.utils import get_url
 
 
 class VATSmartChallan:
@@ -512,7 +514,9 @@ class VATSmartChallan:
 			frappe.ValidationError: If request_type is invalid or if response format is unknown.
 			requests.exceptions.RequestException: For network/HTTP errors (after retry logic).
 		"""
-		headers = self.get_header()
+		headers = self.get_header().copy()
+		if request_type == "POST" and files:
+			headers.pop("Content-Type", None)
 
 		try:
 			# Determine request method
@@ -557,10 +561,26 @@ class VATSmartChallan:
 
 		except requests.exceptions.RequestException as e:
 			frappe.throw(str(e))
-		finally:
-			if files:
-				for f in files.values():
-					f.close()
+
+	def get_absolute_file_path(self, file_url: str) -> str:
+		"""
+		Returns the absolute filesystem path of a file stored in ERPNext,
+		handling both /files (public) and /private/files (private) paths.
+		"""
+		file_url = file_url.lstrip("/")
+
+		if file_url.startswith("private/files/"):
+			absolute_path = frappe.get_site_path(file_url)
+		elif file_url.startswith("files/"):
+			absolute_path = os.path.join(frappe.get_site_path("public", "files"),
+										 file_url.split("/")[-1])
+		else:
+			absolute_path = frappe.get_site_path(file_url)
+
+		if not os.path.exists(absolute_path):
+			frappe.throw(f"File does not exist: {absolute_path}")
+
+		return absolute_path
 
 	def upload_file(self, document_category_key: str, file_path: str, retailer_id: str):
 		"""
@@ -577,35 +597,38 @@ class VATSmartChallan:
 		Raises:
 			frappe.ValidationError: On upload failure or invalid response.
 		"""
-		absolute_file_path = frappe.get_site_path("public", file_path.lstrip("/"))
+		url = f"{self.base_url}/integration/upload_file"
+		absolute_file_path = self.get_absolute_file_path(file_path)
 
+		# Make sure file exists
 		if not os.path.exists(absolute_file_path):
 			frappe.throw(f"File does not exist: {absolute_file_path}")
 
-		url = f"{self.base_url}/integration/upload_file"
+		# Determine MIME type
+		mime_type, _ = mimetypes.guess_type(absolute_file_path)
 
-		files = {"file": open(absolute_file_path, "rb")}
-		payload = {
-			"retailer_id": retailer_id,
-			"document_category_key": document_category_key
-		}
+		with open(absolute_file_path, "rb") as f:
+			files = {
+				"file": (os.path.basename(absolute_file_path), f,
+						 mime_type or "application/octet-stream"),
+			}
 
-		try:
-			parsed_data = self.get_response_data(url, request_type="POST", payload=payload,
+			data = {
+				"retailer_id": retailer_id,
+				"document_category_key": document_category_key,
+			}
+
+			parsed_data = self.get_response_data(url, request_type="POST", payload=data,
 												 files=files)
 
-			# Handle response
-			status_code = str(parsed_data.get("status_code") or parsed_data.get("code"))
-			if status_code == "200":
-				data = parsed_data.get("data", {})
-				message = data.get("message")
-				file_url = data.get("upload_file_url")
-				frappe.msgprint(f"{message}: {file_url}")
-				return data
-			else:
-				error_msg = parsed_data.get("message") or parsed_data.get(
-					"error") or "Unknown error"
-				frappe.throw(f"File upload failed: {error_msg}")
-
-		except requests.exceptions.RequestException as e:
-			frappe.throw(f"Request Error: {str(e)}")
+		status_code = str(parsed_data.get("status_code") or parsed_data.get("code"))
+		if status_code == "200":
+			data = parsed_data.get("data", {})
+			return {
+				"message": data.get("message", "File uploaded successfully"),
+				"file_url": data.get("upload_file_url")
+			}
+		else:
+			error_msg = parsed_data.get("message") or parsed_data.get(
+				"error") or "Unknown error"
+			frappe.throw(f"File upload failed: {error_msg}")

@@ -40,22 +40,35 @@ frappe.ui.form.on("Retailer Registration", {
 		}
 	},
 	nid_document: function (frm) {
-		if (frm.doc.nid_document) {
-			frappe.call({
-				method: "vschallan.vat_challan.doctype.retailer_registration.retailer_registration.upload_file",
-				args: {
-					file_path: frm.doc.nid_document,
-					retailer_id: frm.doc.retailer_id,
-					document_category_key: "nid_document"
-				},
-				callback: function (r) {
-					if (r.message) {
-						frappe.msgprint("File uploaded successfully");
-					}
-				}
-			});
-
-		}
+		submit_document(frm.doc.nid_document, frm.doc.retailer_id, "nid_document");
+	},
+	bin_document: function (frm){
+		submit_document(frm.doc.bin_document, frm.doc.retailer_id, "business_identification_number");
+	},
+	trade_document: function (frm){
+		submit_document(frm.doc.trade_document, frm.doc.retailer_id, "trade_license");
+	},
+	tin_document: function (frm){
+		submit_document(frm.doc.tin_document, frm.doc.retailer_id, "tax_identification");
 	}
 });
+
+function submit_document(file_path, retailer_id, document_category_key) {
+	if (file_path) {
+		frappe.call({
+			method: "vschallan.vat_challan.doctype.retailer_registration.retailer_registration.upload_file",
+			args: {
+				file_path: file_path,
+				retailer_id: retailer_id,
+				document_category_key: document_category_key
+			},
+			callback: function (r) {
+				// if (r.message) {
+				// 	frappe.msgprint(`${r.message.message}: ${r.message.file_url}`);
+				// }
+			}
+		});
+
+	}
+}
 
