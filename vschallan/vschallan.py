@@ -673,3 +673,91 @@ class VATSmartChallan:
 			error_msg = parsed_data.get("message") or parsed_data.get(
 				"error") or "Unknown error"
 			frappe.throw(f"File upload failed: {error_msg}")
+
+	def create_vat_invoice(self, doc):
+		pos_profile = frappe.get_doc("POS Profile", doc.pos_profile)
+		customer = frappe.get_doc("Customer", doc.customer)
+
+		buyer_info = {
+			"buyer_info": {
+				"dial_code": "+88",
+				"phone": customer.mobile_no,
+				"name": customer.customer_name,
+				"email": customer.email_id,
+			}
+		}
+
+		vat_invoice_detail = [
+			{
+				"invoice_number": doc.name,
+				"product_name": item.item_name,
+				"quantity": item.qty,
+				"unit_price": item.rate,
+				"sd_percentage": item.get("sd_percentage", 0.0),
+				"sd_amount": item.get("sd_amount", 0.0),
+				"total_amount": item.amount,
+				"service_type_id": item.get("custom_service_type_id"),
+				"discount_percentage": item.get("discount_percentage", 0.0),
+				"discount_amount": item.get("discount_amount", 0.0),
+				"total_amount_before_tax": item.get("amount", item.amount),
+				"vat_inclusive": False,
+			}
+			for item in doc.items
+		]
+
+		payload = {
+			"invoice_number": doc.name,
+			"retailer_id": pos_profile.custom_retailer_id,
+			"invoice_date": f"{doc.posting_date} {doc.posting_time}",
+			"retailer_transaction_ref": "",
+			"customer_id": doc.customer,
+			"bank_transaction_id": "",
+			"branch": pos_profile.custom_retailer_branch,
+			"buyer_info": json.dumps(buyer_info),
+			"txn_amount": doc.total,
+			"payment_method": doc.payments[0].mode_of_payment if doc.payments else "",
+			"total_sd_percentage": 0.0,
+			"terminal_number": "",
+			"total_sd_amount": 0.0,
+			"retailer_branch_id": pos_profile.custom_retailer_branch_id,
+			"total_amount": doc.grand_total,
+			"total_discount_amount": doc.discount_amount,
+			"user_id": frappe.session.user,
+			"user_info": "",
+			"retailer_info": "",
+			"meta_data": "",
+			"vat_invoice_detail": json.dumps(vat_invoice_detail),
+		}
+		if isinstance(doc.posting_date, str):
+			posting_date = datetime.strptime(doc.posting_date, "%Y-%m-%d").date()
+		else:
+			posting_date = doc.posting_date
+
+		if isinstance(doc.posting_time, str):
+			try:
+				posting_time = datetime.strptime(doc.posting_time, "%H:%M:%S.%f").time()
+			except ValueError:
+				posting_time = datetime.strptime(doc.posting_time, "%H:%M:%S").time()
+		else:
+			posting_time = doc.posting_time
+
+		posting_datetime = datetime.combine(posting_date, posting_time)
+		invoice_timestamp = int(posting_datetime.timestamp())
+
+		payload["requested_payloads"] = {
+			**payload,
+			"invoice_date": invoice_timestamp,
+			"buyer_info": buyer_info,
+			"vat_invoice_detail": vat_invoice_detail,
+		}
+
+		vat_invoice_doc = frappe.get_doc({
+			"doctype": "VAT Invoice",
+			**payload
+		})
+
+		vat_invoice_doc.insert(ignore_permissions=True)
+
+		frappe.msgprint(f"VAT Invoice created for POS Invoice {doc.name}")
+
+		return vat_invoice_doc
