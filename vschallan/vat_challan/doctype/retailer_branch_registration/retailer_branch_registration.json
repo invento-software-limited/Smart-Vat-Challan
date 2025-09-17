@@ -23,7 +23,11 @@
   "division",
   "division_id",
   "circle",
-  "circle_id"
+  "circle_id",
+  "section_break_eozm",
+  "branch_id",
+  "branch_number",
+  "server_response"
  ],
  "fields": [
   {
@@ -85,7 +89,8 @@
    "depends_on": "eval:doc.branch_address",
    "fieldname": "address_display",
    "fieldtype": "Small Text",
-   "label": "Address Display"
+   "label": "Address Display",
+   "read_only": 1
   },
   {
    "fieldname": "zone",
@@ -154,13 +159,35 @@
    "fieldtype": "Data",
    "label": "Branch Phone Number",
    "reqd": 1
+  },
+  {
+   "fieldname": "section_break_eozm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "server_response",
+   "fieldtype": "JSON",
+   "label": "Server Response",
+   "read_only": 1
+  },
+  {
+   "fieldname": "branch_id",
+   "fieldtype": "Data",
+   "label": "Branch ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "branch_number",
+   "fieldtype": "Data",
+   "label": "Branch Number",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-07 16:19:22.355476",
+ "modified": "2025-09-17 12:01:08.398308",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Retailer Branch Registration",

@@ -1,9 +1,12 @@
 # Copyright (c) 2025, Invento Software Limited and contributors
 # For license information, please see license.txt
 
-# import frappe
+import frappe
 from frappe.model.document import Document
+from vschallan.vschallan import VATSmartChallan
 
 
 class RetailerBranchRegistration(Document):
-	pass
+	def before_submit(self):
+		vschallan = VATSmartChallan()
+		vschallan.retailer_branch_registration(self)

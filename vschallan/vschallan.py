@@ -452,6 +452,47 @@ class VATSmartChallan:
 		except requests.exceptions.RequestException as e:
 			frappe.throw(f"Request Error: {str(e)}")
 
+	def retailer_branch_registration(self, doc):
+		url = f"{self.base_url}/integration/retailer_branch_registration"
+
+		payload = {
+			"retailer_id": doc.retailer_id,
+			"branch_name": doc.branch_name,
+			"branch_address": doc.address_display,
+			"branch_type": 1 if doc.branch_type == "Main Branch" else 2,
+			"zone_id": doc.zone_id,
+			"vat_commissionrate_id": doc.vat_commissionrate_id,
+			"division_id": doc.division_id,
+			"circle_id": doc.circle_id,
+			"branch_phone_number": doc.branch_phone_number,
+			"branch_dial_code": doc.branch_dial_code
+		}
+
+		try:
+			parsed_data = self.get_response_data(url, "POST", payload)
+			doc.db_set("server_response", json.dumps(parsed_data, indent=2))
+			status_code = str(parsed_data.get("status_code"))
+			data_elem = parsed_data.get("data")
+			success = parsed_data.get("success")
+			error_msg = parsed_data.get("error")
+
+			if status_code == "200" and data_elem:
+				branch_id = data_elem.get("branch_id")
+				branch_number = data_elem.get("branch_number")
+
+				if branch_id and branch_number:
+					doc.db_set("branch_id", branch_id)
+					doc.db_set("branch_number", branch_number)
+					frappe.msgprint(f"Retailer Branch registered successfully: {branch_number}")
+
+			elif success == "0":
+				frappe.throw(f"Retailer registration failed: {error_msg or 'Unknown error'}")
+
+		except requests.exceptions.HTTPError as e:
+			frappe.throw(f"HTTP Error: {str(e)}")
+		except requests.exceptions.RequestException as e:
+			frappe.throw(f"Request Error: {str(e)}")
+
 	def parse_xml_to_json(self, xml_string):
 		"""
 		Convert XML string to JSON dict
