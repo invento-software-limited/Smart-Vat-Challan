@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "creation": "2025-09-02 12:17:02.100271",
  "doctype": "DocType",
@@ -36,6 +37,8 @@
   "vat_invoice_detail",
   "server_response_section",
   "status",
+  "vat_invoice_id",
+  "s_challan_number",
   "requested_payloads",
   "response"
  ],
@@ -85,7 +88,7 @@
   },
   {
    "fieldname": "buyer_info",
-   "fieldtype": "Small Text",
+   "fieldtype": "JSON",
    "label": "Buyer Info"
   },
   {
@@ -138,7 +141,7 @@
   },
   {
    "fieldname": "retailer_branch_info",
-   "fieldtype": "Small Text",
+   "fieldtype": "JSON",
    "label": "Retailer Branch Info"
   },
   {
@@ -168,7 +171,7 @@
   },
   {
    "fieldname": "vat_invoice_detail",
-   "fieldtype": "Small Text",
+   "fieldtype": "JSON",
    "label": "VAT Invoice Detail"
   },
   {
@@ -206,7 +209,7 @@
   },
   {
    "fieldname": "response",
-   "fieldtype": "Text",
+   "fieldtype": "JSON",
    "label": "Response"
   },
   {
@@ -214,13 +217,23 @@
    "fieldtype": "Link",
    "label": "Branch",
    "options": "Retailer Branch Registration"
+  },
+  {
+   "fieldname": "vat_invoice_id",
+   "fieldtype": "Data",
+   "label": "VAT Invoice ID"
+  },
+  {
+   "fieldname": "s_challan_number",
+   "fieldtype": "Data",
+   "label": "S Challan Number"
   }
  ],
  "grid_page_length": 50,
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-07 18:25:40.689551",
+ "modified": "2025-09-18 11:02:56.518123",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "VAT Invoice",

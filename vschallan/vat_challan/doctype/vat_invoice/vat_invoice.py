@@ -3,35 +3,17 @@
 
 import frappe
 from frappe.model.document import Document
+from vschallan.vschallan import VATSmartChallan
 
 
 class VATInvoice(Document):
+	def after_insert(self):
+		self.sync_vat_invoice()
+
 	def sync_vat_invoice(self):
 		"""Sync VAT Invoice to external system"""
-		try:
-			# Update status to indicate syncing
-			self.status = "Syncing"
-			self.save()
-
-			# Here you would implement the actual sync logic
-			# For now, we'll just simulate a successful sync
-			# Replace this with your actual sync implementation
-
-			# Example sync logic:
-			# response = sync_to_external_system(self)
-
-			# Update status to synced
-			self.status = "Synced"
-			self.save()
-
-			frappe.msgprint("VAT Invoice synced successfully!")
-
-		except Exception as e:
-			# Update status to failed
-			self.status = "Failed"
-			self.save()
-
-			frappe.throw(f"Failed to sync VAT Invoice: {str(e)}")
+		vschallan = VATSmartChallan()
+		vschallan.sync_vat_invoice(self)
 
 
 @frappe.whitelist()

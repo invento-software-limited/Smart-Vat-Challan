@@ -679,12 +679,10 @@ class VATSmartChallan:
 		customer = frappe.get_doc("Customer", doc.customer)
 
 		buyer_info = {
-			"buyer_info": {
-				"dial_code": "+88",
-				"phone": customer.mobile_no,
-				"name": customer.customer_name,
-				"email": customer.email_id,
-			}
+			"dial_code": "+88",
+			"phone": customer.mobile_no,
+			"name": customer.customer_name,
+			"email": customer.email_id,
 		}
 
 		vat_invoice_detail = [
@@ -709,7 +707,7 @@ class VATSmartChallan:
 			"invoice_number": doc.name,
 			"retailer_id": pos_profile.custom_retailer_id,
 			"invoice_date": f"{doc.posting_date} {doc.posting_time}",
-			"retailer_transaction_ref": "",
+			"retailer_transaction_ref": doc.name,
 			"customer_id": doc.customer,
 			"bank_transaction_id": "",
 			"branch": pos_profile.custom_retailer_branch,
@@ -722,10 +720,6 @@ class VATSmartChallan:
 			"retailer_branch_id": pos_profile.custom_retailer_branch_id,
 			"total_amount": doc.grand_total,
 			"total_discount_amount": doc.discount_amount,
-			"user_id": frappe.session.user,
-			"user_info": "",
-			"retailer_info": "",
-			"meta_data": "",
 			"vat_invoice_detail": json.dumps(vat_invoice_detail),
 		}
 		if isinstance(doc.posting_date, str):
@@ -744,12 +738,16 @@ class VATSmartChallan:
 		posting_datetime = datetime.combine(posting_date, posting_time)
 		invoice_timestamp = int(posting_datetime.timestamp())
 
-		payload["requested_payloads"] = {
-			**payload,
-			"invoice_date": invoice_timestamp,
-			"buyer_info": buyer_info,
-			"vat_invoice_detail": vat_invoice_detail,
+		requested_payloads = {
+			"vat_invoice": {
+				**payload,
+				"invoice_date": invoice_timestamp,
+				"buyer_info": buyer_info,
+				"vat_invoice_detail": vat_invoice_detail,
+			}
 		}
+
+		payload["requested_payloads"] = requested_payloads
 
 		vat_invoice_doc = frappe.get_doc({
 			"doctype": "VAT Invoice",
@@ -761,3 +759,45 @@ class VATSmartChallan:
 		frappe.msgprint(f"VAT Invoice created for POS Invoice {doc.name}")
 
 		return vat_invoice_doc
+
+	def sync_vat_invoice(self, doc):
+		doc.db_set("status", "Syncing")
+
+		url = f"{self.base_url}/integration/record_vat"
+
+		try:
+			payload = doc.requested_payloads
+			if isinstance(payload, str):
+				payload = json.loads(payload)
+
+			parsed_data = self.get_response_data(
+				url,
+				request_type="POST",
+				payload=payload,
+			)
+
+			print(parsed_data)
+
+			response = parsed_data
+			if not isinstance(payload, str):
+				response = json.dumps(parsed_data, indent=2)
+
+			doc.db_set("response", response)
+
+			if str(parsed_data.get("status_code")) == "200":
+				data = parsed_data.get("data", {})
+				vat_invoice_id = data.get("vat_invoice_id")
+				s_challan_number = data.get("s_challan_number")
+
+				if vat_invoice_id:
+					doc.db_set("vat_invoice_id", vat_invoice_id)
+				if s_challan_number:
+					doc.db_set("s_challan_number", s_challan_number)
+
+				doc.db_set("status", "Synced")
+			else:
+				doc.db_set("status", "Failed")
+
+		except Exception as e:
+			doc.db_set("status", "Failed")
+			frappe.log_error(frappe.get_traceback(), "VAT Sync Error")
