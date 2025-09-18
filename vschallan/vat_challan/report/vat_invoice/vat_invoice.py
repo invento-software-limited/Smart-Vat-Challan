@@ -273,8 +273,9 @@ def get_data(filters):
 	)
 
 	for row in data:
-		row[
-			"sync_now"] = f"<button class='btn btn-xs btn-primary' onclick='syncVatInvoice(\"{row.name}\")'>Sync Now</button>"
+		if row.status == "Failed":
+			row[
+				"sync_now"] = f"<button class='btn btn-xs btn-primary' onclick='syncVatInvoice(\"{row.name}\")'>Sync Now</button>"
 		row[
 			"download_schallan"] = f"<button class='btn btn-xs btn-primary' onclick='downloadVatChallan(\"{row.name}\")'>Download Schallan</button>"
 

@@ -776,8 +776,6 @@ class VATSmartChallan:
 				payload=payload,
 			)
 
-			print(parsed_data)
-
 			response = parsed_data
 			if not isinstance(payload, str):
 				response = json.dumps(parsed_data, indent=2)
