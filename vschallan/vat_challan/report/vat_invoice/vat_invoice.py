@@ -116,11 +116,10 @@ def get_columns():
 	return columns
 
 
-def get_report_summary(filters):
+def build_vat_invoice_filters(filters):
 	filters = frappe._dict(filters or {})
-
-	# remove non-doctype fields
 	valid_filters = {}
+
 	if filters.get("invoice_number"):
 		valid_filters["invoice_number"] = ["like", f"%{filters.invoice_number}%"]
 
@@ -130,12 +129,25 @@ def get_report_summary(filters):
 	if filters.get("status"):
 		valid_filters["status"] = filters.status
 
+	# Date handling with full-day range
 	if filters.get("from_date") and filters.get("to_date"):
-		valid_filters["invoice_date"] = ["between", [filters.from_date, filters.to_date]]
+		valid_filters["invoice_date"] = [
+			"between",
+			[
+				f"{filters.from_date} 00:00:00",
+				f"{filters.to_date} 23:59:59"
+			]
+		]
 	elif filters.get("from_date"):
-		valid_filters["invoice_date"] = [">=", filters.from_date]
+		valid_filters["invoice_date"] = [">=", f"{filters.from_date} 00:00:00"]
 	elif filters.get("to_date"):
-		valid_filters["invoice_date"] = ["<=", filters.to_date]
+		valid_filters["invoice_date"] = ["<=", f"{filters.to_date} 23:59:59"]
+
+	return valid_filters
+
+
+def get_report_summary(filters):
+	valid_filters = build_vat_invoice_filters(filters)
 
 	# Counts
 	total_invoices = frappe.db.count("VAT Invoice", valid_filters)
@@ -188,16 +200,7 @@ def get_report_summary(filters):
 
 
 def get_sales_trends_chart(filters):
-	filters = frappe._dict(filters or {})
-
-	# Remove non-doctype fields
-	valid_filters = {}
-	if filters.get("from_date") and filters.get("to_date"):
-		valid_filters["invoice_date"] = ["between", [filters.from_date, filters.to_date]]
-	elif filters.get("from_date"):
-		valid_filters["invoice_date"] = [">=", filters.from_date]
-	elif filters.get("to_date"):
-		valid_filters["invoice_date"] = ["<=", filters.to_date]
+	valid_filters = build_vat_invoice_filters(filters)
 
 	# Get sales per day
 	sales_data = frappe.get_all(
@@ -232,23 +235,7 @@ def get_sales_trends_chart(filters):
 
 
 def get_data(filters):
-	filter_conditions = {}
-
-	if filters.get("invoice_number"):
-		filter_conditions["invoice_number"] = ["like", f"%{filters.invoice_number}%"]
-
-	if filters.get("order_id"):
-		filter_conditions["order_id"] = ["like", f"%{filters.order_id}%"]
-
-	if filters.get("status"):
-		filter_conditions["status"] = filters.status
-
-	if filters.get("from_date") and filters.get("to_date"):
-		filter_conditions["invoice_date"] = ["between", [filters.from_date, filters.to_date]]
-	elif filters.get("from_date"):
-		filter_conditions["invoice_date"] = [">=", filters.from_date]
-	elif filters.get("to_date"):
-		filter_conditions["invoice_date"] = ["<=", filters.to_date]
+	filter_conditions = build_vat_invoice_filters(filters)
 
 	data = frappe.get_all(
 		"VAT Invoice",
@@ -276,7 +263,8 @@ def get_data(filters):
 		if row.status == "Failed":
 			row[
 				"sync_now"] = f"<button class='btn btn-xs btn-primary' onclick='syncVatInvoice(\"{row.name}\")'>Sync Now</button>"
-		row[
-			"download_schallan"] = f"<button class='btn btn-xs btn-primary' onclick='downloadVatChallan(\"{row.name}\")'>Download Schallan</button>"
+		if row.status == "Synced":
+			row[
+				"download_schallan"] = f"<button class='btn btn-xs btn-primary' onclick='downloadVatChallan(\"{row.name}\")'>Download Schallan</button>"
 
 	return data

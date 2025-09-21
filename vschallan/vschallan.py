@@ -799,3 +799,28 @@ class VATSmartChallan:
 		except Exception as e:
 			doc.db_set("status", "Failed")
 			frappe.log_error(frappe.get_traceback(), "VAT Sync Error")
+
+	def download_schallan(self, doc):
+		url = f"{self.base_url}/integration/download_schallan"
+
+		try:
+			payload = {
+				"vat_invoice_id": doc.vat_invoice_id
+			}
+
+			parsed_data = self.get_response_data(
+				url,
+				request_type="POST",
+				payload=payload,
+			)
+			if str(parsed_data.get("status_code")) == "200":
+				data = parsed_data.get("data", {})
+				download_url = data.get("download_url")
+				return download_url
+
+			else:
+				frappe.log_error(frappe.get_traceback(), "Download Schallan Error")
+				frappe.throw("Failed to download Schallan")
+		except Exception as e:
+			frappe.log_error(frappe.get_traceback(), "Download Schallan Error")
+			frappe.throw("Failed to download Schallan")

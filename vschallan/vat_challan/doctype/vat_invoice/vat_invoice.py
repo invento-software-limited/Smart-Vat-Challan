@@ -15,6 +15,11 @@ class VATInvoice(Document):
 		vschallan = VATSmartChallan()
 		vschallan.sync_vat_invoice(self)
 
+	def download_schallan(self):
+		"""Download S Challan"""
+		vschallan = VATSmartChallan()
+		return vschallan.download_schallan(self)
+
 
 @frappe.whitelist()
 def sync_vat_invoice(vat_invoice_name):
@@ -22,3 +27,9 @@ def sync_vat_invoice(vat_invoice_name):
 	vat_invoice = frappe.get_doc("VAT Invoice", vat_invoice_name)
 	vat_invoice.sync_vat_invoice()
 	return {"success": True}
+
+@frappe.whitelist()
+def download_schallan(vat_invoice_name):
+	"""API method to download VAT Invoice"""
+	vat_invoice = frappe.get_doc("VAT Invoice", vat_invoice_name)
+	return vat_invoice.download_schallan()

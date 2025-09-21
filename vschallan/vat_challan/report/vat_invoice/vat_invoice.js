@@ -64,5 +64,26 @@ frappe.query_reports["VAT Invoice"] = {
 				}
 			});
 		};
+		window.downloadVatChallan = function (vat_invoice_name) {
+			frappe.call({
+				method: "vschallan.vat_challan.doctype.vat_invoice.vat_invoice.download_schallan",
+				args: {
+					vat_invoice_name: vat_invoice_name
+				},
+				callback: function (r) {
+					if (r.exc) {
+						frappe.msgprint({
+							title: __("Error"),
+							message: __("Failed to download schallan: ") + r.exc,
+							indicator: "red"
+						});
+					}else {
+						if (r.message){
+							window.open(r.message, '_blank');
+						}
+					}
+				}
+			})
+		}
 	}
 };
