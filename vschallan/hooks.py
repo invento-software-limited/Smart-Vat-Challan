@@ -146,23 +146,9 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"vschallan.tasks.all"
-# 	],
-# 	"daily": [
-# 		"vschallan.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"vschallan.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"vschallan.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"vschallan.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"daily": ["vschallan.vschallan.auto_sync_vat_invoices"],
+}
 
 # Testing
 # -------

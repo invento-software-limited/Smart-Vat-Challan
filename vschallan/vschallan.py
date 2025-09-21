@@ -4,11 +4,14 @@ import requests
 import xmltodict
 import json
 import mimetypes
+from frappe import _
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from frappe.utils import get_url
+from frappe.utils.background_jobs import enqueue
+from frappe.utils import nowdate, getdate, add_days, date_diff
 
 
 class VATSmartChallan:
@@ -37,10 +40,10 @@ class VATSmartChallan:
 		if not config_data:
 			frappe.throw("No POS Vendor Configuration found")
 
-		if config_data.get("disabled") == 1:
+		if config_data.get("disabled") == "1":
 			frappe.throw("POS Vendor Configuration is disabled")
 
-		self.docname = "POS Vendor Configuration"  # single doctypes always use their own name
+		self.docname = "POS Vendor Configuration"
 		self.base_url = config_data.get("base_url")
 		self.client_id = config_data.get("client_id")
 		self.access_token = config_data.get("access_token")
@@ -49,6 +52,9 @@ class VATSmartChallan:
 		self.client_secret = get_decrypted_password(
 			"POS Vendor Configuration", self.docname, "client_secret"
 		)
+		self.sync_schedule = config_data.get("sync_schedule")
+
+		print(config_data.get("sync_schedule"))
 
 	def get_access_token(self, force_refresh=False):
 		"""
@@ -377,12 +383,15 @@ class VATSmartChallan:
 		"""
 		url = f"{self.base_url}/integration/retail_registration"
 
-		# Collect service types
 		type_of_business_list = []
 		if hasattr(doc, "service_types") and doc.service_types:
 			for row in doc.service_types:
 				if row.type_id:
 					type_of_business_list.append(row.type_id)
+
+		business_logo_url = None
+		if doc.business_logo:
+			business_logo_url = frappe.utils.get_url(doc.business_logo)
 
 		# Prepare payload
 		payload = {
@@ -392,8 +401,8 @@ class VATSmartChallan:
 			"owner_email": doc.owner_email,
 			"owner_nid": doc.owner_nid,
 			"business_name": doc.business_name,
-			"business_address": doc.business_address,
-			"business_logo": doc.business_logo,
+			"business_address": doc.address_display,
+			"business_logo": business_logo_url,
 			"business_website": doc.business_website,
 			"business_ecom": doc.business_ecom,
 			"business_app": doc.business_app,
@@ -676,6 +685,17 @@ class VATSmartChallan:
 
 	def create_vat_invoice(self, doc):
 		pos_profile = frappe.get_doc("POS Profile", doc.pos_profile)
+
+		retailer_branch_id = pos_profile.custom_retailer_branch
+		retailer_branch_doc = frappe.get_doc("Retailer Branch Registration", retailer_branch_id)
+
+		if retailer_branch_doc.disabled:
+			return
+
+		retailer_id = pos_profile.custom_retailer
+		retailer_doc = frappe.get_doc("Retailer Registration", retailer_id)
+		valid_service_type_ids = [d.type_id for d in retailer_doc.get("service_types")]
+
 		customer = frappe.get_doc("Customer", doc.customer)
 
 		buyer_info = {
@@ -685,8 +705,24 @@ class VATSmartChallan:
 			"email": customer.email_id,
 		}
 
-		vat_invoice_detail = [
-			{
+		vat_invoice_detail = []
+		for item in doc.items:
+			service_type_id = item.get("custom_service_type_id")
+
+			if not service_type_id:
+				frappe.throw(
+					_("Item '{0}' is missing a Service Type ID. Please set it before proceeding.")
+					.format(item.item_name)
+				)
+
+			if service_type_id not in valid_service_type_ids:
+				frappe.throw(
+					_("Service Type '{0}' in item '{1}' is not listed under Retailer '{2}'. Please check retailer setup.")
+					.format(item.custom_service_type_name, item.item_name, retailer_doc.name)
+				)
+
+			vat_inclusive = item.custom_vat_exclusive == 0
+			vat_invoice_detail.append({
 				"invoice_number": doc.name,
 				"product_name": item.item_name,
 				"quantity": item.qty,
@@ -694,14 +730,12 @@ class VATSmartChallan:
 				"sd_percentage": item.get("sd_percentage", 0.0),
 				"sd_amount": item.get("sd_amount", 0.0),
 				"total_amount": item.amount,
-				"service_type_id": item.get("custom_service_type_id"),
+				"service_type_id": service_type_id,
 				"discount_percentage": item.get("discount_percentage", 0.0),
 				"discount_amount": item.get("discount_amount", 0.0),
 				"total_amount_before_tax": item.get("amount", item.amount),
-				"vat_inclusive": False,
-			}
-			for item in doc.items
-		]
+				"vat_inclusive": vat_inclusive,
+			})
 
 		payload = {
 			"invoice_number": doc.name,
@@ -756,7 +790,8 @@ class VATSmartChallan:
 
 		vat_invoice_doc.insert(ignore_permissions=True)
 
-		frappe.msgprint(f"VAT Invoice created for POS Invoice {doc.name}")
+		if self.sync_schedule == "After Submit":
+			self.sync_vat_invoice(vat_invoice_doc)
 
 		return vat_invoice_doc
 
@@ -824,3 +859,49 @@ class VATSmartChallan:
 		except Exception as e:
 			frappe.log_error(frappe.get_traceback(), "Download Schallan Error")
 			frappe.throw("Failed to download Schallan")
+
+
+def auto_sync_vat_invoices():
+	config = frappe.get_single("POS Vendor Configuration")
+	schedule = config.sync_schedule
+
+	last_sync = frappe.db.get_single_value("POS Vendor Configuration", "last_sync_date")
+
+	today = getdate(nowdate())
+	should_run = False
+
+	if schedule == "Daily":
+		should_run = True
+	elif schedule == "Weekly":
+		should_run = not last_sync or date_diff(today, getdate(last_sync)) >= 7
+	elif schedule == "Monthly":
+		should_run = not last_sync or date_diff(today, getdate(last_sync)) >= 30
+	elif schedule == "Quarterly":
+		should_run = not last_sync or date_diff(today, getdate(last_sync)) >= 90
+
+	if not should_run:
+		return
+
+	invoices = frappe.get_all(
+		"VAT Invoice",
+		filters={"status": ["in", ["Pending", "Failed"]]},
+		fields=["name"]
+	)
+
+	for inv in invoices:
+		enqueue(
+			"vschallan.vschallan.sync_vat_invoice_job",
+			invoice_name=inv.name,
+			queue="long",
+		)
+
+	frappe.db.set_value("POS Vendor Configuration", None, "last_sync_date", today)
+	frappe.db.commit()
+
+
+def sync_vat_invoice_job(invoice_name):
+	doc = frappe.get_doc("VAT Invoice", invoice_name)
+	try:
+		doc.sync_vat_invoice()
+	except Exception as e:
+		frappe.log_error(f"VAT Sync failed for {invoice_name}: {str(e)}", "VAT Sync Error")

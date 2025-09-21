@@ -3,6 +3,26 @@
 
 
 frappe.ui.form.on("Retailer Registration", {
+	business_address: function (frm) {
+		if (frm.doc.business_address) {
+			// Fetch the selected Address
+			frappe.db.get_doc('Address', frm.doc.business_address)
+				.then(address => {
+					let display = '';
+					if (address.address_line1) display += address.address_line1;
+					if (address.address_line2) display += ', ' + address.address_line2;
+					if (address.city) display += ', ' + address.city;
+					if (address.state) display += ', ' + address.state;
+					if (address.pincode) display += ', ' + address.pincode;
+					if (address.country) display += ', ' + address.country;
+
+					frm.set_value('address_display', display);
+				});
+		} else {
+			frm.set_value('address_display', '');
+
+		}
+	},
 	zone: function (frm) {
 		if (frm.doc.zone) {
 			frm.set_query("vat_commission_rate", function () {
@@ -42,13 +62,13 @@ frappe.ui.form.on("Retailer Registration", {
 	nid_document: function (frm) {
 		submit_document(frm.doc.nid_document, frm.doc.retailer_id, "nid_document");
 	},
-	bin_document: function (frm){
+	bin_document: function (frm) {
 		submit_document(frm.doc.bin_document, frm.doc.retailer_id, "business_identification_number");
 	},
-	trade_document: function (frm){
+	trade_document: function (frm) {
 		submit_document(frm.doc.trade_document, frm.doc.retailer_id, "trade_license");
 	},
-	tin_document: function (frm){
+	tin_document: function (frm) {
 		submit_document(frm.doc.tin_document, frm.doc.retailer_id, "tax_identification");
 	}
 });

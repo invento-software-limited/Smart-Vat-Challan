@@ -24,6 +24,7 @@
   "division_id",
   "circle",
   "circle_id",
+  "disabled",
   "section_break_eozm",
   "branch_id",
   "branch_number",
@@ -181,13 +182,20 @@
    "fieldtype": "Data",
    "label": "Branch Number",
    "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-17 12:01:08.398308",
+ "modified": "2025-11-06 15:51:31.154878",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Retailer Branch Registration",

@@ -151,9 +151,11 @@
    "label": "App Download URL"
   },
   {
+   "description": "e.g: 123456789-1234",
    "fieldname": "bin",
    "fieldtype": "Data",
-   "label": "Business Identification Number"
+   "label": "Business Identification Number",
+   "reqd": 1
   },
   {
    "fieldname": "trade_license_number",
@@ -344,7 +346,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-11 17:23:51.635743",
+ "modified": "2025-11-06 14:48:57.510321",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Retailer Registration",

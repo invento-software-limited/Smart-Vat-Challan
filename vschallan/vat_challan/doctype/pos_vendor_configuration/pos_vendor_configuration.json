@@ -13,7 +13,11 @@
   "column_break_fqqv",
   "company_id",
   "access_token",
-  "expiry_date"
+  "expiry_date",
+  "sync_settings_section",
+  "sync_schedule",
+  "column_break_csds",
+  "last_sync_date"
  ],
  "fields": [
   {
@@ -69,13 +73,35 @@
    "in_list_view": 1,
    "label": "Base Url",
    "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "sync_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Sync Settings"
+  },
+  {
+   "fieldname": "sync_schedule",
+   "fieldtype": "Select",
+   "label": "Sync Schedule",
+   "options": "\nAfter Submit\nDaily\nWeekly\nMonthly"
+  },
+  {
+   "fieldname": "column_break_csds",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_sync_date",
+   "fieldtype": "Date",
+   "label": "Last Sync Date",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-01 17:01:20.769216",
+ "modified": "2025-11-06 17:48:25.203825",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "POS Vendor Configuration",

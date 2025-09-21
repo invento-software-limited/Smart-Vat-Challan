@@ -7,9 +7,6 @@ from vschallan.vschallan import VATSmartChallan
 
 
 class VATInvoice(Document):
-	def after_insert(self):
-		self.sync_vat_invoice()
-
 	def sync_vat_invoice(self):
 		"""Sync VAT Invoice to external system"""
 		vschallan = VATSmartChallan()
