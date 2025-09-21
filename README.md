@@ -6,121 +6,147 @@
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://invento.com.bd" target="_blank">
-    <img src="https://invento.com.bd/wp-content/uploads/2023/11/invento-logo-color.svg" alt="Invento Software Limited" height="48">
+    <img src="./invento-logo.png" alt="Invento Software Limited" height="48">
   </a>
 </p>
 
-A production-ready ERPNext app that integrates with the Government of Bangladesh National Board of Revenue (NBR) Smart VAT services. It streamlines Smart VAT calculation, retailer registration, and challan generation directly from ERPNext.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+[![ERPNext](https://img.shields.io/badge/ERPNext-v15-green)](https://erpnext.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-## Key Features
+A production-ready **ERPNext app** that integrates with the **Government of Bangladesh National Board of Revenue (NBR) Smart VAT system**.
 
-- Secure integration with NBR Smart VAT APIs
-- Access token management with automatic refresh
-- Retailer registration and status handling
-- Master data sync (Zones, Divisions, Circles, VAT Commission Rates, Retailer Service Types)
-- Smart VAT calculation and challan generation
-- Duplicate-safe data upserts into ERPNext doctypes
-- Clear errors and messages for operators
-- Works with ERPNext roles and permissions
+It streamlines **Smart VAT calculation, retailer & branch registration, VAT challan generation, and reporting** directly inside ERPNext.
 
-## Requirements
+---
 
-- Frappe Framework v15
-- ERPNext v15
-- Python 3.10+ (recommended 3.12)
-- Valid NBR vendor credentials (Client ID and Client Secret)
-- Internet access from the ERPNext server
+## 🚀 Key Features
 
-## Installation
+- 🔐 **Secure Integration** with NBR Smart VAT APIs
+- 🔄 **Automatic Access Token** management
+- 🏢 **Retailer & Branch Registration** (NBR retailer, additional branches)
+- 📦 **Master Data Sync** (Zones, Divisions, Circles, VAT Commission Rates, Service Types)
+- 💰 **Smart VAT Calculation & Challan Generation** directly from ERPNext
+- 📑 **VAT Invoice Reports** with filters (date range, retailer, status, etc.)
+- ⬇️ **Challan Download** (PDF/XML from NBR portal, directly from VAT Invoice)
+- 🛡 **Duplicate-Safe Data Upserts** into ERPNext doctypes
+- 👤 **Role-based Access Control** using ERPNext's permission model
 
-Install using the Bench CLI:
+---
+
+## 📋 Requirements
+
+- Frappe Framework **v15**
+- ERPNext **v15**
+- Python **3.10+** (recommended **3.12**)
+- Valid NBR Vendor Credentials (**Client ID** and **Client Secret**)
+- Internet access from ERPNext server
+
+---
+
+## ⚙️ Installation
+
 ```bash
-bash cd PATH_TO_YOUR_BENCH
-bench get-appURL_OF_THIS_REPO --branch main
+cd PATH_TO_YOUR_BENCH
+bench get-app URL_OF_THIS_REPO --branch main
 bench install-app vschallan
 bench migrate
-
 ```
-If you are using a multi-tenant setup, install the app on the desired site(s).
 
-## Configuration
+# 🔧 Configuration
+Go to ERPNext Desk → VAT Challan → Settings → POS Vendor Configuration (Single)
 
-1. Open ERPNext Desk and go to:
-   - VAT Challan module → Settings → POS Vendor Configuration (Single)
-2. Fill in your NBR API credentials and settings:
-   - Base URL (production or sandbox endpoint provided by NBR)
-   - Client ID
-   - Client Secret
-   - Company ID (if applicable)
-3. Save the configuration.
-4. Generate or refresh the access token from the configuration (if a button is provided) or allow the system to fetch it automatically during the first API call.
+Fill in your NBR API credentials:
+- Base URL (production/sandbox provided by NBR)
+- Client ID
+- Client Secret
+- Company ID (if applicable)
 
-## Master Data Synchronization
+Save the configuration.
 
-Keep your ERPNext master records in sync with NBR:
+Refresh or generate a new access token manually, or allow the system to do so on the first API call.
 
+## 📡 Master Data Synchronization
+Keep ERPNext in sync with NBR Smart VAT:
 - Zones
 - Divisions
 - Circles
 - VAT Commission Rates
 - Retailer Service Types
 
-You can trigger synchronization from the VAT Challan module (e.g., via “Sync” actions). The app will:
-- Fetch the latest data from NBR
+From the VAT Challan module, trigger "Sync" actions. The app will:
+- Fetch latest data from NBR
 - Insert new records
 - Avoid creating duplicates
 
-## Retailer Registration
+## 🏬 Retailer & Branch Registration
+Open VAT Challan → Retailer Registration to register new retailers.
 
-Register retailers with NBR from ERPNext:
+Fill in required business and owner details, select service types, and submit.
 
-- Open VAT Challan → Retailer Registration
-- Fill in the required business and owner details
-- Select service types
-- Submit/Save to send the registration to NBR
-- The response (including retailer number or any existing record message) will be stored with the document
+Responses (retailer number, messages) are saved in ERPNext.
 
-## Challan Generation and VAT Calculation
+For multiple outlets/branches:
+- Open VAT Challan → Retailer Branch Registration
+- Link branches to the parent retailer
+- Submit to register branch info with NBR
 
-- From relevant transactions or VAT-specific forms in the VAT Challan module, generate the Smart VAT challan.
-- The system will compute VAT as per the configured commission rates and service types, and communicate with NBR to record the challan.
-- Print or export the challan for compliance and audit.
+## 📑 VAT Invoice Reports
+Analyze VAT Invoices directly in ERPNext:
+- Filter by Invoice Number, Order ID, Status, Date Range
+- Metrics include:
+  - Total Invoices
+  - Pending / Synced / Failed Invoices
+  - Unique Customers
+  - Transaction Amount, Total Sales, VAT Amount, Discounts
+- Built-in Sales Trends Chart for daily sales amounts
 
-Note: Exact forms and actions may vary based on your ERPNext setup and user permissions.
+## ⬇️ Challan Download
+For any synced VAT Invoice:
+- Open the VAT Invoice Report
+- Click "Download Challan" button
+- System fetches the challan PDF from NBR and downloads it locally
 
-## Troubleshooting
+## 🛠 Troubleshooting
+- Check credentials (Client ID/Secret, Base URL)
+- Ensure server can reach NBR API endpoints
+- "Unauthorized" errors → refresh access token
+- Verify ERPNext user permissions for VAT Challan doctypes
 
-- Ensure credentials (Client ID/Secret, Base URL) are correct and active.
-- Check that your server can reach the NBR API endpoints.
-- If you see “Unauthorized” errors, refresh the access token from configuration and retry.
-- Verify user permissions to access VAT Challan doctypes and actions.
+## 🤝 Contributing
+This app uses pre-commit for formatting and linting.
 
-## Contributing
-
-This app uses pre-commit for code formatting and linting.
 ```bash
-cd apps/vschallan pre-commit install
+cd apps/vschallan
+pre-commit install
 ```
 
+## 🤝 Contributing
 
-Tools configured:
-- ruff
-- eslint
-- prettier
-- pyupgrade
+This app uses pre-commit for formatting and linting with the following configured tools:
 
-We welcome issues and pull requests.
+- **ruff** - Python linting and formatting
+- **eslint** - JavaScript/TypeScript linting
+- **prettier** - Code formatting
+- **pyupgrade** - Python syntax upgrades
 
-## License
+Pull requests and issues are welcome ✅
 
-MIT
+## 📄 License
 
-## Support
+MIT License – see [LICENSE](LICENSE) file for details.
 
-Developed and maintained by Invento Software Limited.
-- Website: https://invento.com.bd
-- Email: info@invento.com.bd
+## 📞 Support
 
-## Disclaimer
+Developed and maintained by **Invento Software Limited**
 
-This app communicates with government systems. Always validate configuration and test in a sandbox/non-production environment before going live. Compliance requirements may change; consult official NBR documentation for the latest rules and endpoints.
+🌍 Website: [https://invento.com.bd](https://invento.com.bd)
+✉️ Email: [info@invento.com.bd](mailto:info@invento.com.bd)
+
+## ⚠️ Disclaimer
+
+This app communicates with government systems. Always:
+
+- Validate configuration thoroughly
+- Test in sandbox environment before production deployment
+- Follow latest NBR compliance rules and regulations
