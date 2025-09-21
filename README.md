@@ -33,6 +33,17 @@ It streamlines **Smart VAT calculation, retailer & branch registration, VAT chal
 - 👤 **Role-based Access Control** using ERPNext's permission model
 
 ---
+## 🎥 Demo Video
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=VMNvvAvKBf8" target="_blank">
+    <img src="https://img.youtube.com/vi/VMNvvAvKBf8/0.jpg" alt="Smart VAT Challan Demo" width="800">
+  </a>
+</p>
+
+👉 Click the image to watch the full demo video.
+
+---
 
 ## 📋 Requirements
 
