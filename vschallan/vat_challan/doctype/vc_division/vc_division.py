@@ -3,11 +3,13 @@
 
 import frappe
 from frappe.model.document import Document
+
 from vschallan.vschallan import VATSmartChallan
 
 
 class VCDivision(Document):
 	pass
+
 
 @frappe.whitelist()
 def sync_vc_division():

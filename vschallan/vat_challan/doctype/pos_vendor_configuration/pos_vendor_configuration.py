@@ -3,11 +3,13 @@
 
 import frappe
 from frappe.model.document import Document
+
 from vschallan.vschallan import VATSmartChallan
 
 
 class POSVendorConfiguration(Document):
 	pass
+
 
 @frappe.whitelist()
 def fetch_pos_vendor_token():

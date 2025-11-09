@@ -138,9 +138,7 @@ app_license = "mit"
 # Hook on document methods and events
 
 doc_events = {
-    "POS Invoice": {
-        "on_submit": "vschallan.vat_challan.hook_functions.vat_invoice.create_vat_invoice"
-    }
+	"POS Invoice": {"on_submit": "vschallan.vat_challan.hook_functions.vat_invoice.create_vat_invoice"}
 }
 
 # Scheduled Tasks
@@ -225,4 +223,3 @@ scheduler_events = {
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-
