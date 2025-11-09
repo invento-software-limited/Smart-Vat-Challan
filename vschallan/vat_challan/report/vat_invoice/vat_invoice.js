@@ -27,7 +27,7 @@ frappe.query_reports["VAT Invoice"] = {
 			"fieldname": "status",
 			"label": __("Status"),
 			"fieldtype": "Select",
-			"options": "\nPending\nSynced\nFailed",
+			"options": "\nPending\nSynced\nFailed\nReturn\nPartly Return",
 			"width": 100
 		},
 	],

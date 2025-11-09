@@ -3,6 +3,7 @@
 
 import frappe
 from frappe import _
+from frappe.utils import flt
 
 
 def execute(filters=None):
@@ -89,6 +90,12 @@ def get_columns():
 			"width": 130
 		},
 		{
+			"fieldname": "total_vat_amount",
+			"label": _("Total VAT Amount"),
+			"fieldtype": "Currency",
+			"width": 130
+		},
+		{
 			"fieldname": "total_amount",
 			"label": _("Total Amount"),
 			"fieldtype": "Currency",
@@ -171,7 +178,7 @@ def get_report_summary(filters):
 		[
 			"sum(txn_amount) as total_txn_amount",
 			"sum(total_amount) as total_sales",
-			"sum(total_sd_amount) as total_vat_amount",
+			"sum(total_amount - txn_amount) as total_vat_amount",
 			"sum(total_discount_amount) as total_discount_amount"
 		],
 		as_dict=True,
@@ -229,7 +236,7 @@ def get_sales_trends_chart(filters):
 				}
 			]
 		},
-		"type": "line",  # Line chart
+		"type": "line",
 		"height": 300
 	}
 
@@ -253,13 +260,14 @@ def get_data(filters):
 			"total_amount",
 			"payment_method",
 			"order_id",
-			"status"
+			"status",
 		],
 		filters=filter_conditions,
 		order_by="creation desc"
 	)
 
 	for row in data:
+		row['total_vat_amount'] = flt(row.total_amount) - flt(row.txn_amount)
 		if row.status == "Failed" or row.status == "Pending":
 			row[
 				"sync_now"] = f"<button class='btn btn-xs btn-primary' onclick='syncVatInvoice(\"{row.name}\")'>Sync Now</button>"
