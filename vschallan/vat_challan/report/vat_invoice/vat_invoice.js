@@ -39,6 +39,27 @@ frappe.query_reports["VAT Invoice"] = {
 
 	},
 	"onload": function (report) {
+		report.page.add_inner_button('Sync All', function (){
+			frappe.call({
+				method: "vschallan.vschallan.auto_sync_vat_invoices",
+				callback: function (r) {
+					if (r.exc) {
+						frappe.msgprint({
+							title: __("Error"),
+							message: __("Failed to sync VAT Invoice: ") + r.exc,
+							indicator: "red"
+						});
+					} else {
+						frappe.msgprint({
+							title: __("Success"),
+							message: __("VAT Invoice synced successfully!"),
+							indicator: "green"
+						});
+						report.refresh();
+					}
+				}
+			})
+		})
 		window.syncVatInvoice = function (vat_invoice_name) {
 			frappe.call({
 				method: "vschallan.vat_challan.doctype.vat_invoice.vat_invoice.sync_vat_invoice",

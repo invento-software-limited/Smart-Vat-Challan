@@ -260,10 +260,10 @@ def get_data(filters):
 	)
 
 	for row in data:
-		if row.status == "Failed":
+		if row.status == "Failed" or row.status == "Pending":
 			row[
 				"sync_now"] = f"<button class='btn btn-xs btn-primary' onclick='syncVatInvoice(\"{row.name}\")'>Sync Now</button>"
-		if row.status == "Synced":
+		if row.status == "Synced" or row.status == 'Return' or row.status == 'Partly Return':
 			row[
 				"download_schallan"] = f"<button class='btn btn-xs btn-primary' onclick='downloadVatChallan(\"{row.name}\")'>Download Schallan</button>"
 

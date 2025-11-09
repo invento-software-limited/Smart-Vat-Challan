@@ -8,8 +8,8 @@ from frappe import _
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth
 import xml.etree.ElementTree as ET
-from datetime import datetime
-from frappe.utils import get_url
+from datetime import datetime, time, timedelta
+from frappe.utils import get_url, flt
 from frappe.utils.background_jobs import enqueue
 from frappe.utils import nowdate, getdate, add_days, date_diff
 
@@ -53,8 +53,6 @@ class VATSmartChallan:
 			"POS Vendor Configuration", self.docname, "client_secret"
 		)
 		self.sync_schedule = config_data.get("sync_schedule")
-
-		print(config_data.get("sync_schedule"))
 
 	def get_access_token(self, force_refresh=False):
 		"""
@@ -721,20 +719,40 @@ class VATSmartChallan:
 					.format(item.custom_service_type_name, item.item_name, retailer_doc.name)
 				)
 
+			vat_percentage = flt(item.custom_vat_rate or 0.0)
 			vat_inclusive = item.custom_vat_exclusive == 0
+			qty = flt(item.qty)
+			rate = flt(item.rate)
+			discount_percentage = flt(item.get("discount_percentage") or 0.0)
+			discount_amount = flt(item.get("discount_amount") or 0.0)
+
+			if vat_inclusive:
+				total_amount = qty * rate - discount_amount
+				total_amount_before_tax = total_amount / (1 + vat_percentage / 100)
+				vat_amount = total_amount - total_amount_before_tax
+			else:
+				total_amount_before_tax = qty * rate - discount_amount
+				vat_amount = total_amount_before_tax * vat_percentage / 100
+				total_amount = total_amount_before_tax + vat_amount
+
+			sd_percentage = flt(item.get("sd_percentage") or 0.0)
+			sd_amount = total_amount * sd_percentage / 100
+
 			vat_invoice_detail.append({
 				"invoice_number": doc.name,
 				"product_name": item.item_name,
-				"quantity": item.qty,
-				"unit_price": item.rate,
-				"sd_percentage": item.get("sd_percentage", 0.0),
-				"sd_amount": item.get("sd_amount", 0.0),
-				"total_amount": item.amount,
+				"quantity": qty,
+				"unit_price": rate,
+				"sd_percentage": sd_percentage,
+				"sd_amount": sd_amount,
+				"total_amount": total_amount + sd_amount,
 				"service_type_id": service_type_id,
-				"discount_percentage": item.get("discount_percentage", 0.0),
-				"discount_amount": item.get("discount_amount", 0.0),
-				"total_amount_before_tax": item.get("amount", item.amount),
+				"discount_percentage": discount_percentage,
+				"discount_amount": discount_amount,
+				"total_amount_before_tax": total_amount_before_tax,
 				"vat_inclusive": vat_inclusive,
+				"vat_percentage": vat_percentage,
+				"vat_amount": vat_amount
 			})
 
 		payload = {
@@ -777,11 +795,12 @@ class VATSmartChallan:
 				**payload,
 				"invoice_date": invoice_timestamp,
 				"buyer_info": buyer_info,
-				"vat_invoice_detail": vat_invoice_detail,
+				"vat_invoice_detail": vat_invoice_detail
 			}
 		}
 
-		payload["requested_payloads"] = requested_payloads
+		payload["requested_payloads"] = json.dumps(requested_payloads, indent=2)
+		payload["vat_invoice_detail"] = json.dumps(vat_invoice_detail, indent=2)
 
 		vat_invoice_doc = frappe.get_doc({
 			"doctype": "VAT Invoice",
@@ -812,10 +831,8 @@ class VATSmartChallan:
 			)
 
 			response = parsed_data
-			if not isinstance(payload, str):
+			if not isinstance(parsed_data, str):
 				response = json.dumps(parsed_data, indent=2)
-
-			doc.db_set("response", response)
 
 			if str(parsed_data.get("status_code")) == "200":
 				data = parsed_data.get("data", {})
@@ -827,11 +844,20 @@ class VATSmartChallan:
 				if s_challan_number:
 					doc.db_set("s_challan_number", s_challan_number)
 
+				doc.db_set("response", response)
 				doc.db_set("status", "Synced")
+
+				self.get_vat_invoice_details(doc)
+				if doc.is_return and not doc.return_response:
+					self.sync_return_vat_invoice(doc)
+			elif str(parsed_data.get("success")) == "0":
+				self.get_vat_invoice_details(doc)
+				if doc.is_return:
+					self.sync_return_vat_invoice(doc)
 			else:
 				doc.db_set("status", "Failed")
 
-		except Exception as e:
+		except Exception:
 			doc.db_set("status", "Failed")
 			frappe.log_error(frappe.get_traceback(), "VAT Sync Error")
 
@@ -860,12 +886,195 @@ class VATSmartChallan:
 			frappe.log_error(frappe.get_traceback(), "Download Schallan Error")
 			frappe.throw("Failed to download Schallan")
 
+	def get_vat_invoice_details(self, doc):
+		url = f"{self.base_url}/integration/get_vat_invoice_details?invoice_number={doc.invoice_number}&smart_challan_number={doc.s_challan_number}"
+		try:
+			if doc.status == 'Pending' or doc.status == 'Failed':
+				self.sync_vat_invoice(doc)
 
+			parsed_data = self.get_response_data(
+				url,
+				request_type="GET",
+			)
+			response = parsed_data
+			if not isinstance(parsed_data, str):
+				response = json.dumps(parsed_data, indent=2)
+
+			doc.db_set("get_response", response)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "Get VAT Invoice Details Error")
+		pass
+
+	def return_vat_invoice(self, pos_invoice_doc):
+		try:
+			doc = frappe.get_doc("VAT Invoice", {"invoice_number": pos_invoice_doc.return_against})
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "VAT Invoice not found error")
+			return
+
+		doc.db_set('is_return', 1)
+		if doc.status == 'Synced':
+			doc.db_set('status', 'Pending')
+
+		vat_invoice_details = frappe.parse_json(doc.get_response)
+		if not vat_invoice_details:
+			self.get_vat_invoice_details(doc)
+			vat_invoice_details = frappe.parse_json(doc.get_response)
+		vat_data = vat_invoice_details.get("data", {})
+
+		vat_invoice_detail_data = vat_data.get("vat_invoice_detail_data")
+		if isinstance(vat_invoice_detail_data, dict):
+			vat_invoice_detail_data = [vat_invoice_detail_data]  # normalize
+
+		return_request_details = []
+		total_vat_amount = 0.0
+		total_vat_percentage = 0.0
+
+		try:
+			for item in pos_invoice_doc.items:
+				matching_vat_detail = next(
+					(d for d in vat_invoice_detail_data if
+					 d.get("product_name") == item.item_code),
+					None
+				)
+
+				if not matching_vat_detail:
+					continue
+
+				qty = abs(flt(item.qty))
+				rate = flt(item.rate)
+				discount_percentage = flt(matching_vat_detail.get("discount_percentage") or 0)
+				discount_amount = qty * discount_percentage / 100
+
+				vat_percentage = flt(matching_vat_detail.get("vat_percentage") or 0)
+				vat_inclusive = str(matching_vat_detail.get("vat_inclusive")).lower() == "true"
+
+				if vat_inclusive:
+					total_amount = abs(flt(item.amount)) - discount_amount
+					total_amount_before_tax = total_amount / (1 + vat_percentage / 100)
+					vat_amount = total_amount - total_amount_before_tax
+				else:
+					total_amount_before_tax = abs(flt(item.amount)) - discount_amount
+					vat_amount = total_amount_before_tax * vat_percentage / 100
+					total_amount = total_amount_before_tax + vat_amount
+
+				total_vat_amount += vat_amount
+
+				merged = {
+					"product_name": item.item_code,
+					"unit_of_supply": item.uom,
+					"quantity": qty,
+					"unit_price": rate,
+					"service_type_id": item.custom_service_type_id,
+					"vat_percentage": vat_percentage,
+					"vat_amount": vat_amount,
+					"total_amount": total_amount,
+					"vat_inclusive": vat_inclusive,
+					"total_amount_before_tax": total_amount_before_tax,
+					"discount_percentage": discount_percentage,
+					"discount_amount": discount_amount,
+					"product_id": matching_vat_detail.get("id"),
+				}
+
+				return_request_details.append(merged)
+
+			total_amount_before_tax_sum = sum(
+				d["total_amount_before_tax"] for d in return_request_details)
+			if total_amount_before_tax_sum:
+				total_vat_percentage = (total_vat_amount / total_amount_before_tax_sum) * 100
+
+			if isinstance(pos_invoice_doc.posting_date, str):
+				posting_date = datetime.strptime(pos_invoice_doc.posting_date, "%Y-%m-%d").date()
+			else:
+				posting_date = pos_invoice_doc.posting_date
+
+			posting_time = pos_invoice_doc.posting_time
+			if isinstance(posting_time, str):
+				try:
+					posting_time = datetime.strptime(posting_time, "%H:%M:%S.%f").time()
+				except ValueError:
+					posting_time = datetime.strptime(posting_time, "%H:%M:%S").time()
+			elif isinstance(posting_time, timedelta):
+				total_seconds = int(posting_time.total_seconds())
+				hours = total_seconds // 3600
+				minutes = (total_seconds % 3600) // 60
+				seconds = total_seconds % 60
+				posting_time = time(hour=hours, minute=minutes, second=seconds)
+			elif isinstance(posting_time, datetime):
+				posting_time = posting_time.time()
+
+			posting_datetime = datetime.combine(posting_date, posting_time)
+			invoice_timestamp = int(posting_datetime.timestamp())
+
+			payload = {
+				"invoice_number": doc.invoice_number,
+				"request_date": invoice_timestamp,
+				"total_void_amount": abs(flt(pos_invoice_doc.grand_total)),
+				"total_sd_percentage": 0,
+				"total_sd_amount": 0,
+				"vat_percentage": total_vat_percentage,
+				"vat_amount": total_vat_amount,
+				"return_reason": pos_invoice_doc.remarks,
+				"return_request_details": return_request_details,
+			}
+
+			doc.db_set('return_payload', json.dumps(payload, indent=2))
+			doc.db_set('return_invoice_no', pos_invoice_doc.name)
+
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "Return Invoice Payload Error")
+
+	def sync_return_vat_invoice(self, doc):
+		url = f"{self.base_url}/integration/return_invoice_request"
+		try:
+			pos_invoice_doc = None
+
+			if not doc.return_payload:
+				pos_invoice_doc = frappe.get_doc("POS Invoice", doc.return_invoice_no)
+				self.return_vat_invoice(pos_invoice_doc)
+
+			payload = doc.return_payload
+			if isinstance(payload, str):
+				payload = frappe.parse_json(payload)
+
+			if not pos_invoice_doc:
+				pos_invoice_doc = frappe.get_doc("POS Invoice", doc.return_invoice_no)
+
+			return_qty_sum = sum(
+				d.get("quantity", 0) for d in payload.get('return_request_details', []))
+			pos_qty_sum = sum(abs(flt(i.qty)) for i in pos_invoice_doc.items)
+
+			if return_qty_sum == pos_qty_sum:
+				doc.db_set('status', 'Return')
+			else:
+				doc.db_set('status', 'Partly Return')
+
+			parsed_data = self.get_response_data(
+				url,
+				request_type="POST",
+				payload=payload,
+			)
+
+			response = parsed_data
+			if not isinstance(parsed_data, str):
+				response = json.dumps(parsed_data, indent=2)
+			if parsed_data.get('success') == "0" and parsed_data.get('error') == "Bad request":
+				doc.db_set('status', 'Failed')
+
+			doc.db_set('return_response', response)
+
+		except Exception:
+			doc.db_set("status", "Failed")
+			frappe.log_error(frappe.get_traceback(), "Return Invoice Request Error")
+
+
+@frappe.whitelist()
 def auto_sync_vat_invoices():
 	config = frappe.get_single("POS Vendor Configuration")
 	schedule = config.sync_schedule
 
 	last_sync = frappe.db.get_single_value("POS Vendor Configuration", "last_sync_date")
+	last_sync_date = getdate(last_sync) if last_sync else None
 
 	today = getdate(nowdate())
 	should_run = False
@@ -881,6 +1090,33 @@ def auto_sync_vat_invoices():
 
 	if not should_run:
 		return
+
+	filters = {"status": "Return"}
+	if last_sync_date:
+		filters["posting_date"] = [">=", last_sync_date]
+
+	vschallan = VATSmartChallan()
+
+	pos_invoices = frappe.get_all(
+		"POS Invoice",
+		filters=filters,
+		fields=["name"]
+	)
+
+	for pos_inv in pos_invoices:
+		vat_exists = frappe.db.exists(
+			"VAT Invoice",
+			{"return_invoice_no": pos_inv.name}
+		)
+		if vat_exists:
+			continue
+
+		try:
+			pos_invoice_doc = frappe.get_doc("POS Invoice", pos_inv.name)
+			vschallan.return_vat_invoice(pos_invoice_doc)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(),
+							 f"Return VAT Invoice failed for {pos_inv.name}")
 
 	invoices = frappe.get_all(
 		"VAT Invoice",
