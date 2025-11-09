@@ -127,15 +127,15 @@ def get_report_summary(data):
 	unique_customers = len(set(d["customer_id"] for d in data))
 
 	return [
-		{"value": total_invoices, "label": "Total Invoices", "datatype": "Int", "indicator": "blue"},
-		{"value": pending, "label": "Pending", "datatype": "Int", "indicator": "orange"},
-		{"value": synced, "label": "Synced", "datatype": "Int", "indicator": "green"},
-		{"value": failed, "label": "Failed", "datatype": "Int", "indicator": "red"},
-		{"value": total_txn, "label": "Transaction Amount", "datatype": "Currency", "indicator": "blue"},
-		{"value": total_sales, "label": "Total Sales", "datatype": "Currency", "indicator": "green"},
-		{"value": total_vat, "label": "Total VAT Amount", "datatype": "Currency", "indicator": "orange"},
-		{"value": total_discount, "label": "Total Discount", "datatype": "Currency", "indicator": "red"},
-		{"value": unique_customers, "label": "Unique Customers", "datatype": "Int", "indicator": "purple"},
+		{"value": total_invoices, "label": _("Total Invoices"), "datatype": "Int", "indicator": "blue"},
+		{"value": pending, "label": _("Pending"), "datatype": "Int", "indicator": "orange"},
+		{"value": synced, "label": _("Synced"), "datatype": "Int", "indicator": "green"},
+		{"value": failed, "label": _("Failed"), "datatype": "Int", "indicator": "red"},
+		{"value": total_txn, "label": _("Transaction Amount"), "datatype": "Currency", "indicator": "blue"},
+		{"value": total_sales, "label": _("Total Sales"), "datatype": "Currency", "indicator": "green"},
+		{"value": total_vat, "label": _("Total VAT Amount"), "datatype": "Currency", "indicator": "orange"},
+		{"value": total_discount, "label": _("Total Discount"), "datatype": "Currency", "indicator": "red"},
+		{"value": unique_customers, "label": _("Unique Customers"), "datatype": "Int", "indicator": "purple"},
 	]
 
 
