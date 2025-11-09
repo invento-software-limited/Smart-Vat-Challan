@@ -3,11 +3,13 @@
 
 import frappe
 from frappe.model.document import Document
+
 from vschallan.vschallan import VATSmartChallan
 
 
 class VCCircle(Document):
 	pass
+
 
 @frappe.whitelist()
 def sync_vc_circle():

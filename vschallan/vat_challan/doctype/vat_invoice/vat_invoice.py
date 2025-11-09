@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
+
 from vschallan.vschallan import VATSmartChallan
 
 
@@ -24,6 +25,7 @@ def sync_vat_invoice(vat_invoice_name):
 	vat_invoice = frappe.get_doc("VAT Invoice", vat_invoice_name)
 	vat_invoice.sync_vat_invoice()
 	return {"success": True}
+
 
 @frappe.whitelist()
 def download_schallan(vat_invoice_name):

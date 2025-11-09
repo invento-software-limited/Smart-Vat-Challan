@@ -1,9 +1,10 @@
 # Copyright (c) 2025, Invento Software Limited and contributors
 # For license information, please see license.txt
 
+import json
+
 import frappe
 from frappe import _
-import json
 from frappe.utils.data import flt
 
 
@@ -18,23 +19,26 @@ def execute(filters=None):
 def get_columns():
 	return [
 		{"fieldname": "name", "label": _("VAT Invoice Number"), "fieldtype": "Data", "width": 150},
-		{"fieldname": "invoice_number", "label": _("Invoice Number"), "fieldtype": "Data",
-		 "width": 120},
-		{"fieldname": "invoice_date", "label": _("Invoice Date"), "fieldtype": "Datetime",
-		 "width": 130},
+		{"fieldname": "invoice_number", "label": _("Invoice Number"), "fieldtype": "Data", "width": 120},
+		{"fieldname": "invoice_date", "label": _("Invoice Date"), "fieldtype": "Datetime", "width": 130},
 		{"fieldname": "branch", "label": _("Branch"), "fieldtype": "Data", "width": 120},
 		{"fieldname": "customer_id", "label": _("Customer ID"), "fieldtype": "Data", "width": 120},
-		{"fieldname": "txn_amount", "label": _("Transaction Amount"), "fieldtype": "Currency",
-		 "width": 130},
-		{"fieldname": "total_discount_amount", "label": _("Discount Amount"),
-		 "fieldtype": "Currency", "width": 120},
-		{"fieldname": "total_service_charges_amount", "label": _("Service Charges"),
-		 "fieldtype": "Currency", "width": 130},
-		{"fieldname": "total_amount", "label": _("Total Amount"), "fieldtype": "Currency",
-		 "width": 130},
+		{"fieldname": "txn_amount", "label": _("Transaction Amount"), "fieldtype": "Currency", "width": 130},
+		{
+			"fieldname": "total_discount_amount",
+			"label": _("Discount Amount"),
+			"fieldtype": "Currency",
+			"width": 120,
+		},
+		{
+			"fieldname": "total_service_charges_amount",
+			"label": _("Service Charges"),
+			"fieldtype": "Currency",
+			"width": 130,
+		},
+		{"fieldname": "total_amount", "label": _("Total Amount"), "fieldtype": "Currency", "width": 130},
 		{"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 100},
-		{"fieldname": "service_type", "label": _("Service Type"), "fieldtype": "Data",
-		 "width": 120}
+		{"fieldname": "service_type", "label": _("Service Type"), "fieldtype": "Data", "width": 120},
 	]
 
 
@@ -43,8 +47,7 @@ def get_data(filters=None):
 
 	if filters:
 		if filters.get("from_date") and filters.get("to_date"):
-			conditions["invoice_date"] = ["between",
-										  [filters.get("from_date"), filters.get("to_date")]]
+			conditions["invoice_date"] = ["between", [filters.get("from_date"), filters.get("to_date")]]
 		elif filters.get("from_date"):
 			conditions["invoice_date"] = [">=", filters.get("from_date")]
 		elif filters.get("to_date"):
@@ -57,12 +60,24 @@ def get_data(filters=None):
 		"VAT Invoice",
 		filters=conditions,
 		fields=[
-			"name", "invoice_number", "invoice_date", "branch", "customer_id",
-			"retailer_id", "txn_amount", "total_sd_percentage", "total_sd_amount",
-			"total_discount_amount", "total_service_charges_amount", "total_amount",
-			"payment_method", "order_id", "status", "requested_payloads"
+			"name",
+			"invoice_number",
+			"invoice_date",
+			"branch",
+			"customer_id",
+			"retailer_id",
+			"txn_amount",
+			"total_sd_percentage",
+			"total_sd_amount",
+			"total_discount_amount",
+			"total_service_charges_amount",
+			"total_amount",
+			"payment_method",
+			"order_id",
+			"status",
+			"requested_payloads",
 		],
-		order_by="invoice_date desc"
+		order_by="invoice_date desc",
 	)
 
 	filtered_invoices = []
@@ -84,7 +99,9 @@ def get_data(filters=None):
 						if st_doc:
 							service_names.append(st_doc)
 							# Match service type filter if applied
-							if service_type_filter and st_doc == frappe.get_value("VC Service Type", service_type_filter, "service_name"):
+							if service_type_filter and st_doc == frappe.get_value(
+								"VC Service Type", service_type_filter, "service_name"
+							):
 								service_match = True
 			except Exception:
 				service_names.append("Unknown")
@@ -96,7 +113,6 @@ def get_data(filters=None):
 			filtered_invoices.append(inv)
 
 	return filtered_invoices
-
 
 
 def get_report_summary(data):
@@ -111,21 +127,15 @@ def get_report_summary(data):
 	unique_customers = len(set(d["customer_id"] for d in data))
 
 	return [
-		{"value": total_invoices, "label": "Total Invoices", "datatype": "Int",
-		 "indicator": "blue"},
+		{"value": total_invoices, "label": "Total Invoices", "datatype": "Int", "indicator": "blue"},
 		{"value": pending, "label": "Pending", "datatype": "Int", "indicator": "orange"},
 		{"value": synced, "label": "Synced", "datatype": "Int", "indicator": "green"},
 		{"value": failed, "label": "Failed", "datatype": "Int", "indicator": "red"},
-		{"value": total_txn, "label": "Transaction Amount", "datatype": "Currency",
-		 "indicator": "blue"},
-		{"value": total_sales, "label": "Total Sales", "datatype": "Currency",
-		 "indicator": "green"},
-		{"value": total_vat, "label": "Total VAT Amount", "datatype": "Currency",
-		 "indicator": "orange"},
-		{"value": total_discount, "label": "Total Discount", "datatype": "Currency",
-		 "indicator": "red"},
-		{"value": unique_customers, "label": "Unique Customers", "datatype": "Int",
-		 "indicator": "purple"}
+		{"value": total_txn, "label": "Transaction Amount", "datatype": "Currency", "indicator": "blue"},
+		{"value": total_sales, "label": "Total Sales", "datatype": "Currency", "indicator": "green"},
+		{"value": total_vat, "label": "Total VAT Amount", "datatype": "Currency", "indicator": "orange"},
+		{"value": total_discount, "label": "Total Discount", "datatype": "Currency", "indicator": "red"},
+		{"value": unique_customers, "label": "Unique Customers", "datatype": "Int", "indicator": "purple"},
 	]
 
 
@@ -139,10 +149,7 @@ def get_service_type_chart(data):
 	values = list(service_totals.values())
 
 	return {
-		"data": {
-			"labels": labels,
-			"datasets": [{"name": "Transaction Amount", "values": values}]
-		},
+		"data": {"labels": labels, "datasets": [{"name": "Transaction Amount", "values": values}]},
 		"type": "bar",
-		"height": 300
+		"height": 300,
 	}

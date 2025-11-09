@@ -3,11 +3,13 @@
 
 import frappe
 from frappe.model.document import Document
+
 from vschallan.vschallan import VATSmartChallan
 
 
 class VCVATCommissionRate(Document):
 	pass
+
 
 @frappe.whitelist()
 def sync_vc_vat_commission_rate():

@@ -1,17 +1,17 @@
+import json
+import mimetypes
 import os
+import xml.etree.ElementTree as ET
+from datetime import datetime, time, timedelta
+
 import frappe
 import requests
 import xmltodict
-import json
-import mimetypes
 from frappe import _
+from frappe.utils import add_days, date_diff, flt, get_url, getdate, nowdate
+from frappe.utils.background_jobs import enqueue
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth
-import xml.etree.ElementTree as ET
-from datetime import datetime, time, timedelta
-from frappe.utils import get_url, flt
-from frappe.utils.background_jobs import enqueue
-from frappe.utils import nowdate, getdate, add_days, date_diff
 
 
 class VATSmartChallan:
@@ -49,9 +49,7 @@ class VATSmartChallan:
 		self.access_token = config_data.get("access_token")
 		self.expiry_date = config_data.get("expiry_date")
 		self.company_id = config_data.get("company_id")
-		self.client_secret = get_decrypted_password(
-			"POS Vendor Configuration", self.docname, "client_secret"
-		)
+		self.client_secret = get_decrypted_password("POS Vendor Configuration", self.docname, "client_secret")
 		self.sync_schedule = config_data.get("sync_schedule")
 
 	def get_access_token(self, force_refresh=False):
@@ -80,7 +78,7 @@ class VATSmartChallan:
 					return {
 						"access_token": self.access_token,
 						"expiry_date": self.expiry_date,
-						"company_id": self.company_id
+						"company_id": self.company_id,
 					}
 			except (ValueError, TypeError):
 				pass
@@ -90,10 +88,7 @@ class VATSmartChallan:
 
 		try:
 			response = requests.post(
-				url,
-				headers=headers,
-				auth=HTTPBasicAuth(self.client_id, self.client_secret),
-				timeout=30
+				url, headers=headers, auth=HTTPBasicAuth(self.client_id, self.client_secret), timeout=30
 			)
 			response.raise_for_status()
 			raw_content = response.text.strip()
@@ -107,7 +102,7 @@ class VATSmartChallan:
 					self.expiry_date = data.get("expiry_time")
 					self.company_id = data.get("company_id")
 				except Exception as e:
-					frappe.throw(f"Failed to parse JSON response: {raw_content}\nError: {str(e)}")
+					frappe.throw(f"Failed to parse JSON response: {raw_content}\nError: {e!s}")
 			else:
 				# XML response
 				try:
@@ -127,8 +122,7 @@ class VATSmartChallan:
 					frappe.throw(f"Failed to parse XML response: {raw_content}")
 
 			# Save to Single Doc
-			frappe.db.set_single_value("POS Vendor Configuration", "access_token",
-									   self.access_token)
+			frappe.db.set_single_value("POS Vendor Configuration", "access_token", self.access_token)
 			frappe.db.set_single_value("POS Vendor Configuration", "expiry_date", self.expiry_date)
 			frappe.db.set_single_value("POS Vendor Configuration", "company_id", self.company_id)
 			frappe.db.commit()
@@ -136,11 +130,11 @@ class VATSmartChallan:
 			return {
 				"access_token": self.access_token,
 				"expiry_date": self.expiry_date,
-				"company_id": self.company_id
+				"company_id": self.company_id,
 			}
 
 		except requests.exceptions.RequestException as e:
-			frappe.throw(f"Failed to authenticate vendor: {str(e)}")
+			frappe.throw(f"Failed to authenticate vendor: {e!s}")
 
 	def get_header(self):
 		"""
@@ -152,7 +146,7 @@ class VATSmartChallan:
 		return {
 			"Authorization": f"Token {self.access_token}",
 			"companyID": self.company_id,
-			"Content-Type": "application/json"
+			"Content-Type": "application/json",
 		}
 
 	def get_zone(self):
@@ -183,11 +177,7 @@ class VATSmartChallan:
 
 			if zone_id and zone_name:
 				if not frappe.db.exists("VC Zone", {"zone_id": zone_id}):
-					doc = frappe.get_doc({
-						"doctype": "VC Zone",
-						"zone_id": zone_id,
-						"zone_name": zone_name
-					})
+					doc = frappe.get_doc({"doctype": "VC Zone", "zone_id": zone_id, "zone_name": zone_name})
 					doc.insert(ignore_permissions=True)
 					frappe.db.commit()
 
@@ -219,16 +209,17 @@ class VATSmartChallan:
 			zone_id_elem = r.get("zone_id")
 
 			if rate_id and name and zone_id_elem:
-				if not frappe.db.exists("VC VAT Commission Rate",
-										{"vat_commission_rate_id": rate_id}):
+				if not frappe.db.exists("VC VAT Commission Rate", {"vat_commission_rate_id": rate_id}):
 					zone_doc = frappe.get_value("VC Zone", {"zone_id": zone_id_elem}, "name")
 
-					doc = frappe.get_doc({
-						"doctype": "VC VAT Commission Rate",
-						"vat_commission_rate_id": rate_id,
-						"vat_commission_rate_name": name,
-						"zone": zone_doc
-					})
+					doc = frappe.get_doc(
+						{
+							"doctype": "VC VAT Commission Rate",
+							"vat_commission_rate_id": rate_id,
+							"vat_commission_rate_name": name,
+							"zone": zone_doc,
+						}
+					)
 					doc.insert(ignore_permissions=True)
 					frappe.db.commit()
 
@@ -262,16 +253,18 @@ class VATSmartChallan:
 					vat_rate_doc = frappe.get_value(
 						"VC VAT Commission Rate",
 						{"vat_commission_rate_id": vat_commissionrate_id_elem},
-						"name"
+						"name",
 					)
 
-					doc = frappe.get_doc({
-						"doctype": "VC Division",
-						"division_id": div_id,
-						"division_name": name,
-						"zone": zone_doc,
-						"vat_commission_rate": vat_rate_doc
-					})
+					doc = frappe.get_doc(
+						{
+							"doctype": "VC Division",
+							"division_id": div_id,
+							"division_name": name,
+							"zone": zone_doc,
+							"vat_commission_rate": vat_rate_doc,
+						}
+					)
 					doc.insert(ignore_permissions=True)
 					frappe.db.commit()
 
@@ -308,24 +301,22 @@ class VATSmartChallan:
 			if frappe.db.exists("VC Circle", {"circle_id": circle_id}):
 				continue
 
-			division_doc = frappe.get_value("VC Division",
-											{"division_id": division_id_elem},
-											"name")
-			zone_doc = frappe.get_value("VC Zone",
-										{"zone_id": zone_id},
-										"name")
-			vat_rate_doc = frappe.get_value("VC VAT Commission Rate",
-											{"vat_commission_rate_id": vat_commissionrate_id},
-											"name")
+			division_doc = frappe.get_value("VC Division", {"division_id": division_id_elem}, "name")
+			zone_doc = frappe.get_value("VC Zone", {"zone_id": zone_id}, "name")
+			vat_rate_doc = frappe.get_value(
+				"VC VAT Commission Rate", {"vat_commission_rate_id": vat_commissionrate_id}, "name"
+			)
 
-			doc = frappe.get_doc({
-				"doctype": "VC Circle",
-				"circle_id": circle_id,
-				"circle_name": name,
-				"division": division_doc,
-				"zone": zone_doc,
-				"vat_commission_rate": vat_rate_doc
-			})
+			doc = frappe.get_doc(
+				{
+					"doctype": "VC Circle",
+					"circle_id": circle_id,
+					"circle_name": name,
+					"division": division_doc,
+					"zone": zone_doc,
+					"vat_commission_rate": vat_rate_doc,
+				}
+			)
 			doc.insert(ignore_permissions=True)
 			frappe.db.commit()
 
@@ -363,14 +354,16 @@ class VATSmartChallan:
 			if exists:
 				continue
 
-			doc = frappe.get_doc({
-				"doctype": "VC Service Type",
-				"service_id": service_id,
-				"heading_code": heading_code,
-				"service_code": service_code,
-				"service_name": service_name,
-				"vat_rate": vat_rate
-			})
+			doc = frappe.get_doc(
+				{
+					"doctype": "VC Service Type",
+					"service_id": service_id,
+					"heading_code": heading_code,
+					"service_code": service_code,
+					"service_name": service_name,
+					"vat_rate": vat_rate,
+				}
+			)
 			doc.insert(ignore_permissions=True)
 			frappe.db.commit()
 
@@ -440,13 +433,9 @@ class VATSmartChallan:
 						doc.db_set("status_code", status_code)
 						doc.db_set("retailer_id", existing_id)
 
-						frappe.msgprint(
-							f"Retailer already exists ({message}): {existing_number}"
-						)
+						frappe.msgprint(f"Retailer already exists ({message}): {existing_number}")
 					else:
-						frappe.throw(
-							f"Retailer registration failed: {message or 'Unknown error'}"
-						)
+						frappe.throw(f"Retailer registration failed: {message or 'Unknown error'}")
 
 			elif success == "0":
 				frappe.throw(f"Retailer registration failed: {error_msg or 'Unknown error'}")
@@ -455,9 +444,9 @@ class VATSmartChallan:
 				frappe.throw("Unexpected response format from API")
 
 		except requests.exceptions.HTTPError as e:
-			frappe.throw(f"HTTP Error: {str(e)}")
+			frappe.throw(f"HTTP Error: {e!s}")
 		except requests.exceptions.RequestException as e:
-			frappe.throw(f"Request Error: {str(e)}")
+			frappe.throw(f"Request Error: {e!s}")
 
 	def retailer_branch_registration(self, doc):
 		url = f"{self.base_url}/integration/retailer_branch_registration"
@@ -472,7 +461,7 @@ class VATSmartChallan:
 			"division_id": doc.division_id,
 			"circle_id": doc.circle_id,
 			"branch_phone_number": doc.branch_phone_number,
-			"branch_dial_code": doc.branch_dial_code
+			"branch_dial_code": doc.branch_dial_code,
 		}
 
 		try:
@@ -496,9 +485,9 @@ class VATSmartChallan:
 				frappe.throw(f"Retailer registration failed: {error_msg or 'Unknown error'}")
 
 		except requests.exceptions.HTTPError as e:
-			frappe.throw(f"HTTP Error: {str(e)}")
+			frappe.throw(f"HTTP Error: {e!s}")
 		except requests.exceptions.RequestException as e:
-			frappe.throw(f"Request Error: {str(e)}")
+			frappe.throw(f"Request Error: {e!s}")
 
 	def parse_xml_to_json(self, xml_string):
 		"""
@@ -506,8 +495,9 @@ class VATSmartChallan:
 		"""
 		try:
 			return xmltodict.parse(xml_string)
-		except Exception as e:
-			frappe.throw(f"Failed to convert XML to JSON: {str(e)}")
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "Failed to convert XML to JSON")
+			frappe.throw("Failed to convert XML to JSON")
 
 	def detect_response_format(self, response_text: str) -> str:
 		"""
@@ -536,8 +526,9 @@ class VATSmartChallan:
 
 		return "unknown"
 
-	def get_response_data(self, url: str, request_type: str, payload: dict = None,
-						  files: dict = None):
+	def get_response_data(
+		self, url: str, request_type: str, payload: dict | None = None, files: dict | None = None
+	):
 		"""
 		Perform an authenticated HTTP request and return parsed response data.
 
@@ -572,8 +563,7 @@ class VATSmartChallan:
 				response = requests.get(url, headers=headers, timeout=30)
 			elif request_type == "POST":
 				if files:
-					response = requests.post(url, headers=headers, data=payload, files=files,
-											 timeout=30)
+					response = requests.post(url, headers=headers, data=payload, files=files, timeout=30)
 				else:
 					response = requests.post(url, headers=headers, json=payload, timeout=30)
 			else:
@@ -587,8 +577,7 @@ class VATSmartChallan:
 					response = requests.get(url, headers=headers, timeout=30)
 				elif request_type == "POST":
 					if files:
-						response = requests.post(url, headers=headers, data=payload, files=files,
-												 timeout=30)
+						response = requests.post(url, headers=headers, data=payload, files=files, timeout=30)
 					else:
 						response = requests.post(url, headers=headers, json=payload, timeout=30)
 
@@ -620,8 +609,7 @@ class VATSmartChallan:
 		if file_url.startswith("private/files/"):
 			absolute_path = frappe.get_site_path(file_url)
 		elif file_url.startswith("files/"):
-			absolute_path = os.path.join(frappe.get_site_path("public", "files"),
-										 file_url.split("/")[-1])
+			absolute_path = os.path.join(frappe.get_site_path("public", "files"), file_url.split("/")[-1])
 		else:
 			absolute_path = frappe.get_site_path(file_url)
 
@@ -657,8 +645,7 @@ class VATSmartChallan:
 
 		with open(absolute_file_path, "rb") as f:
 			files = {
-				"file": (os.path.basename(absolute_file_path), f,
-						 mime_type or "application/octet-stream"),
+				"file": (os.path.basename(absolute_file_path), f, mime_type or "application/octet-stream"),
 			}
 
 			data = {
@@ -666,19 +653,17 @@ class VATSmartChallan:
 				"document_category_key": document_category_key,
 			}
 
-			parsed_data = self.get_response_data(url, request_type="POST", payload=data,
-												 files=files)
+			parsed_data = self.get_response_data(url, request_type="POST", payload=data, files=files)
 
 		status_code = str(parsed_data.get("status_code") or parsed_data.get("code"))
 		if status_code == "200":
 			data = parsed_data.get("data", {})
 			return {
 				"message": data.get("message", "File uploaded successfully"),
-				"file_url": data.get("upload_file_url")
+				"file_url": data.get("upload_file_url"),
 			}
 		else:
-			error_msg = parsed_data.get("message") or parsed_data.get(
-				"error") or "Unknown error"
+			error_msg = parsed_data.get("message") or parsed_data.get("error") or "Unknown error"
 			frappe.throw(f"File upload failed: {error_msg}")
 
 	def create_vat_invoice(self, doc):
@@ -709,14 +694,16 @@ class VATSmartChallan:
 
 			if not service_type_id:
 				frappe.throw(
-					_("Item '{0}' is missing a Service Type ID. Please set it before proceeding.")
-					.format(item.item_name)
+					_("Item '{0}' is missing a Service Type ID. Please set it before proceeding.").format(
+						item.item_name
+					)
 				)
 
 			if service_type_id not in valid_service_type_ids:
 				frappe.throw(
-					_("Service Type '{0}' in item '{1}' is not listed under Retailer '{2}'. Please check retailer setup.")
-					.format(item.custom_service_type_name, item.item_name, retailer_doc.name)
+					_(
+						"Service Type '{0}' in item '{1}' is not listed under Retailer '{2}'. Please check retailer setup."
+					).format(item.custom_service_type_name, item.item_name, retailer_doc.name)
 				)
 
 			vat_percentage = flt(item.custom_vat_rate or 0.0)
@@ -738,22 +725,24 @@ class VATSmartChallan:
 			sd_percentage = flt(item.get("sd_percentage") or 0.0)
 			sd_amount = total_amount * sd_percentage / 100
 
-			vat_invoice_detail.append({
-				"invoice_number": doc.name,
-				"product_name": item.item_name,
-				"quantity": qty,
-				"unit_price": rate,
-				"sd_percentage": sd_percentage,
-				"sd_amount": sd_amount,
-				"total_amount": total_amount + sd_amount,
-				"service_type_id": service_type_id,
-				"discount_percentage": discount_percentage,
-				"discount_amount": discount_amount,
-				"total_amount_before_tax": total_amount_before_tax,
-				"vat_inclusive": vat_inclusive,
-				"vat_percentage": vat_percentage,
-				"vat_amount": vat_amount
-			})
+			vat_invoice_detail.append(
+				{
+					"invoice_number": doc.name,
+					"product_name": item.item_name,
+					"quantity": qty,
+					"unit_price": rate,
+					"sd_percentage": sd_percentage,
+					"sd_amount": sd_amount,
+					"total_amount": total_amount + sd_amount,
+					"service_type_id": service_type_id,
+					"discount_percentage": discount_percentage,
+					"discount_amount": discount_amount,
+					"total_amount_before_tax": total_amount_before_tax,
+					"vat_inclusive": vat_inclusive,
+					"vat_percentage": vat_percentage,
+					"vat_amount": vat_amount,
+				}
+			)
 
 		payload = {
 			"invoice_number": doc.name,
@@ -795,17 +784,14 @@ class VATSmartChallan:
 				**payload,
 				"invoice_date": invoice_timestamp,
 				"buyer_info": buyer_info,
-				"vat_invoice_detail": vat_invoice_detail
+				"vat_invoice_detail": vat_invoice_detail,
 			}
 		}
 
 		payload["requested_payloads"] = json.dumps(requested_payloads, indent=2)
 		payload["vat_invoice_detail"] = json.dumps(vat_invoice_detail, indent=2)
 
-		vat_invoice_doc = frappe.get_doc({
-			"doctype": "VAT Invoice",
-			**payload
-		})
+		vat_invoice_doc = frappe.get_doc({"doctype": "VAT Invoice", **payload})
 
 		vat_invoice_doc.insert(ignore_permissions=True)
 
@@ -865,9 +851,7 @@ class VATSmartChallan:
 		url = f"{self.base_url}/integration/download_schallan"
 
 		try:
-			payload = {
-				"vat_invoice_id": doc.vat_invoice_id
-			}
+			payload = {"vat_invoice_id": doc.vat_invoice_id}
 
 			parsed_data = self.get_response_data(
 				url,
@@ -882,14 +866,14 @@ class VATSmartChallan:
 			else:
 				frappe.log_error(frappe.get_traceback(), "Download Schallan Error")
 				frappe.throw("Failed to download Schallan")
-		except Exception as e:
+		except Exception:
 			frappe.log_error(frappe.get_traceback(), "Download Schallan Error")
 			frappe.throw("Failed to download Schallan")
 
 	def get_vat_invoice_details(self, doc):
 		url = f"{self.base_url}/integration/get_vat_invoice_details?invoice_number={doc.invoice_number}&smart_challan_number={doc.s_challan_number}"
 		try:
-			if doc.status == 'Pending' or doc.status == 'Failed':
+			if doc.status == "Pending" or doc.status == "Failed":
 				self.sync_vat_invoice(doc)
 
 			parsed_data = self.get_response_data(
@@ -912,9 +896,9 @@ class VATSmartChallan:
 			frappe.log_error(frappe.get_traceback(), "VAT Invoice not found error")
 			return
 
-		doc.db_set('is_return', 1)
-		if doc.status == 'Synced':
-			doc.db_set('status', 'Pending')
+		doc.db_set("is_return", 1)
+		if doc.status == "Synced":
+			doc.db_set("status", "Pending")
 
 		vat_invoice_details = frappe.parse_json(doc.get_response)
 		if not vat_invoice_details:
@@ -933,9 +917,7 @@ class VATSmartChallan:
 		try:
 			for item in pos_invoice_doc.items:
 				matching_vat_detail = next(
-					(d for d in vat_invoice_detail_data if
-					 d.get("product_name") == item.item_code),
-					None
+					(d for d in vat_invoice_detail_data if d.get("product_name") == item.item_code), None
 				)
 
 				if not matching_vat_detail:
@@ -978,8 +960,7 @@ class VATSmartChallan:
 
 				return_request_details.append(merged)
 
-			total_amount_before_tax_sum = sum(
-				d["total_amount_before_tax"] for d in return_request_details)
+			total_amount_before_tax_sum = sum(d["total_amount_before_tax"] for d in return_request_details)
 			if total_amount_before_tax_sum:
 				total_vat_percentage = (total_vat_amount / total_amount_before_tax_sum) * 100
 
@@ -1018,8 +999,8 @@ class VATSmartChallan:
 				"return_request_details": return_request_details,
 			}
 
-			doc.db_set('return_payload', json.dumps(payload, indent=2))
-			doc.db_set('return_invoice_no', pos_invoice_doc.name)
+			doc.db_set("return_payload", json.dumps(payload, indent=2))
+			doc.db_set("return_invoice_no", pos_invoice_doc.name)
 
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), "Return Invoice Payload Error")
@@ -1040,14 +1021,13 @@ class VATSmartChallan:
 			if not pos_invoice_doc:
 				pos_invoice_doc = frappe.get_doc("POS Invoice", doc.return_invoice_no)
 
-			return_qty_sum = sum(
-				d.get("quantity", 0) for d in payload.get('return_request_details', []))
+			return_qty_sum = sum(d.get("quantity", 0) for d in payload.get("return_request_details", []))
 			pos_qty_sum = sum(abs(flt(i.qty)) for i in pos_invoice_doc.items)
 
 			if return_qty_sum == pos_qty_sum:
-				doc.db_set('status', 'Return')
+				doc.db_set("status", "Return")
 			else:
-				doc.db_set('status', 'Partly Return')
+				doc.db_set("status", "Partly Return")
 
 			parsed_data = self.get_response_data(
 				url,
@@ -1058,10 +1038,10 @@ class VATSmartChallan:
 			response = parsed_data
 			if not isinstance(parsed_data, str):
 				response = json.dumps(parsed_data, indent=2)
-			if parsed_data.get('success') == "0" and parsed_data.get('error') == "Bad request":
-				doc.db_set('status', 'Failed')
+			if parsed_data.get("success") == "0" and parsed_data.get("error") == "Bad request":
+				doc.db_set("status", "Failed")
 
-			doc.db_set('return_response', response)
+			doc.db_set("return_response", response)
 
 		except Exception:
 			doc.db_set("status", "Failed")
@@ -1097,17 +1077,10 @@ def auto_sync_vat_invoices():
 
 	vschallan = VATSmartChallan()
 
-	pos_invoices = frappe.get_all(
-		"POS Invoice",
-		filters=filters,
-		fields=["name"]
-	)
+	pos_invoices = frappe.get_all("POS Invoice", filters=filters, fields=["name"])
 
 	for pos_inv in pos_invoices:
-		vat_exists = frappe.db.exists(
-			"VAT Invoice",
-			{"return_invoice_no": pos_inv.name}
-		)
+		vat_exists = frappe.db.exists("VAT Invoice", {"return_invoice_no": pos_inv.name})
 		if vat_exists:
 			continue
 
@@ -1115,13 +1088,10 @@ def auto_sync_vat_invoices():
 			pos_invoice_doc = frappe.get_doc("POS Invoice", pos_inv.name)
 			vschallan.return_vat_invoice(pos_invoice_doc)
 		except Exception:
-			frappe.log_error(frappe.get_traceback(),
-							 f"Return VAT Invoice failed for {pos_inv.name}")
+			frappe.log_error(frappe.get_traceback(), f"Return VAT Invoice failed for {pos_inv.name}")
 
 	invoices = frappe.get_all(
-		"VAT Invoice",
-		filters={"status": ["in", ["Pending", "Failed"]]},
-		fields=["name"]
+		"VAT Invoice", filters={"status": ["in", ["Pending", "Failed"]]}, fields=["name"]
 	)
 
 	for inv in invoices:
@@ -1139,5 +1109,5 @@ def sync_vat_invoice_job(invoice_name):
 	doc = frappe.get_doc("VAT Invoice", invoice_name)
 	try:
 		doc.sync_vat_invoice()
-	except Exception as e:
-		frappe.log_error(f"VAT Sync failed for {invoice_name}: {str(e)}", "VAT Sync Error")
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "VAT Sync Error")
