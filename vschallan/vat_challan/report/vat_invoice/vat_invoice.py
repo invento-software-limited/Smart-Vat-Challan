@@ -119,38 +119,37 @@ def get_report_summary(filters):
 	)
 
 	return [
-		{"value": total_invoices, "label": "Total Invoices", "datatype": "Int", "indicator": "blue"},
-		{"value": pending_invoices, "label": "Pending", "datatype": "Int", "indicator": "orange"},
-		{"value": synced_invoices, "label": "Synced", "datatype": "Int", "indicator": "green"},
-		{"value": failed_invoices, "label": "Failed", "datatype": "Int", "indicator": "red"},
-		# 👇 New card (non-currency)
+		{"value": total_invoices, "label": _("Total Invoices"), "datatype": "Int", "indicator": "blue"},
+		{"value": pending_invoices, "label": _("Pending"), "datatype": "Int", "indicator": "orange"},
+		{"value": synced_invoices, "label": _("Synced"), "datatype": "Int", "indicator": "green"},
+		{"value": failed_invoices, "label": _("Failed"), "datatype": "Int", "indicator": "red"},
 		{
 			"value": unique_customers_count,
-			"label": "Unique Customers",
+			"label": _("Unique Customers"),
 			"datatype": "Int",
 			"indicator": "purple",
 		},
 		{
 			"value": totals.total_txn_amount or 0,
-			"label": "Transaction Amount",
+			"label": _("Transaction Amount"),
 			"datatype": "Currency",
 			"indicator": "blue",
 		},
 		{
 			"value": totals.total_sales or 0,
-			"label": "Total Sales",
+			"label": _("Total Sales"),
 			"datatype": "Currency",
 			"indicator": "green",
 		},
 		{
 			"value": totals.total_vat_amount or 0,
-			"label": "Total VAT Amount",
+			"label": _("Total VAT Amount"),
 			"datatype": "Currency",
 			"indicator": "orange",
 		},
 		{
 			"value": totals.total_discount_amount or 0,
-			"label": "Total Discount",
+			"label": _("Total Discount"),
 			"datatype": "Currency",
 			"indicator": "red",
 		},

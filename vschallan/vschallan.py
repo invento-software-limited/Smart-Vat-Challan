@@ -497,7 +497,7 @@ class VATSmartChallan:
 			return xmltodict.parse(xml_string)
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), "Failed to convert XML to JSON")
-			frappe.throw("Failed to convert XML to JSON")
+			frappe.throw(_("Failed to convert XML to JSON"))
 
 	def detect_response_format(self, response_text: str) -> str:
 		"""
