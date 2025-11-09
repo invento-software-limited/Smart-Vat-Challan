@@ -43,7 +43,6 @@ def get_data(filters=None):
 
 	if filters:
 		if filters.get("from_date") and filters.get("to_date"):
-			# Use BETWEEN for date range
 			conditions["invoice_date"] = ["between",
 										  [filters.get("from_date"), filters.get("to_date")]]
 		elif filters.get("from_date"):
@@ -66,25 +65,38 @@ def get_data(filters=None):
 		order_by="invoice_date desc"
 	)
 
+	filtered_invoices = []
+	service_type_filter = filters.get("service_type") if filters else None
+
 	for inv in invoices:
 		payload = inv.get("requested_payloads")
 		service_names = []
+		service_match = False
+
 		if payload:
 			try:
-				import json
 				payload_dict = json.loads(payload)
 				vat_invoice = payload_dict.get("vat_invoice", {})
 				for item in vat_invoice.get("vat_invoice_detail", []):
 					st_id = item.get("service_type_id")
 					if st_id:
-						st_doc = frappe.get_doc("VC Service Type", {'service_id': st_id})
-						service_names.append(st_doc.service_name)
+						st_doc = frappe.get_value("VC Service Type", {"service_id": st_id}, "service_name")
+						if st_doc:
+							service_names.append(st_doc)
+							# Match service type filter if applied
+							if service_type_filter and st_doc == frappe.get_value("VC Service Type", service_type_filter, "service_name"):
+								service_match = True
 			except Exception:
 				service_names.append("Unknown")
 
 		inv["service_type"] = ", ".join(service_names) if service_names else "Unknown"
 
-	return invoices
+		# Include invoice only if matches service filter (or no filter)
+		if not service_type_filter or service_match:
+			filtered_invoices.append(inv)
+
+	return filtered_invoices
+
 
 
 def get_report_summary(data):
