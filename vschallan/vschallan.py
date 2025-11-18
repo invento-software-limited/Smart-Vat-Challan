@@ -837,6 +837,7 @@ class VATSmartChallan:
 				if doc.is_return and not doc.return_response:
 					self.sync_return_vat_invoice(doc)
 			elif str(parsed_data.get("success")) == "0":
+				doc.db_set("status", "Synced")
 				self.get_vat_invoice_details(doc)
 				if doc.is_return:
 					self.sync_return_vat_invoice(doc)
@@ -901,7 +902,7 @@ class VATSmartChallan:
 			doc.db_set("status", "Pending")
 
 		vat_invoice_details = frappe.parse_json(doc.get_response)
-		if not vat_invoice_details:
+		if not vat_invoice_details and not vat_invoice_details.get("data"):
 			self.get_vat_invoice_details(doc)
 			vat_invoice_details = frappe.parse_json(doc.get_response)
 		vat_data = vat_invoice_details.get("data", {})
