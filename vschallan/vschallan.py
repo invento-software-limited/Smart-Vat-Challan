@@ -837,7 +837,6 @@ class VATSmartChallan:
 				if doc.is_return and not doc.return_response:
 					self.sync_return_vat_invoice(doc)
 			elif str(parsed_data.get("success")) == "0":
-				doc.db_set("status", "Synced")
 				self.get_vat_invoice_details(doc)
 				if doc.is_return:
 					self.sync_return_vat_invoice(doc)
@@ -898,11 +897,12 @@ class VATSmartChallan:
 			return
 
 		doc.db_set("is_return", 1)
+		doc.db_set("return_invoice_no", pos_invoice_doc.name)
 		if doc.status == "Synced":
 			doc.db_set("status", "Pending")
 
 		vat_invoice_details = frappe.parse_json(doc.get_response)
-		if not vat_invoice_details and not vat_invoice_details.get("data"):
+		if not vat_invoice_details:
 			self.get_vat_invoice_details(doc)
 			vat_invoice_details = frappe.parse_json(doc.get_response)
 		vat_data = vat_invoice_details.get("data", {})
@@ -1001,7 +1001,6 @@ class VATSmartChallan:
 			}
 
 			doc.db_set("return_payload", json.dumps(payload, indent=2))
-			doc.db_set("return_invoice_no", pos_invoice_doc.name)
 
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), "Return Invoice Payload Error")
@@ -1068,6 +1067,8 @@ def auto_sync_vat_invoices():
 		should_run = not last_sync or date_diff(today, getdate(last_sync)) >= 30
 	elif schedule == "Quarterly":
 		should_run = not last_sync or date_diff(today, getdate(last_sync)) >= 90
+	elif schedule == "After Submit":
+		should_run = True
 
 	if not should_run:
 		return
