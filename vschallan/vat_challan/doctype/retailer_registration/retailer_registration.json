@@ -239,6 +239,7 @@
    "reqd": 1
   },
   {
+   "description": "Retailer must be register against a company.",
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
@@ -346,7 +347,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-06 14:48:57.510321",
+ "modified": "2025-11-18 09:42:45.926663",
  "modified_by": "Administrator",
  "module": "Vat Challan",
  "name": "Retailer Registration",
