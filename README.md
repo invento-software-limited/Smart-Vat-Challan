@@ -179,7 +179,7 @@ MIT License – see [LICENSE](LICENSE) for details.
 
 Developed & maintained by **Invento Software Limited**
 🌍 [https://invento.com.bd](https://invento.com.bd)
-✉️ info@invento.com.bd
+✉️ hello@invento.com.bd
 
 ---
 
